@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { data, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Home, UserPlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";

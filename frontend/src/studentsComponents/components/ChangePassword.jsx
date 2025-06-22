@@ -11,6 +11,8 @@ import {
   Shield,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import axios from "axios";
+import { apiUrl } from "../../utilits/apiUrl";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -79,21 +81,28 @@ export default function ResetPassword() {
       return;
     }
 
-    if (oldPassword === password) {
+    if (oldPassword !== password) {
       toast.error("New password must be different from old password.");
       return;
     }
 
     try {
-      setLoading(true);
-      // Simulate password change
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setLoading(true); // <-- start loading
+      await axios.post(`${apiUrl}/reset-password`, {
+        email,
+        token,
+        oldPassword: password,
+        newPassword: confirm,
+      });
       setSuccess(true);
-      toast.success("Password changed successfully!");
     } catch (err) {
-      toast.error("Something went wrong while changing the password.");
+      console.log(err, "err");
+      const msg =
+        err.response?.data?.error ||
+        "Something went wrong while resetting the password.";
+      toast.error(msg || "Something went wrong while changing the password.");
     } finally {
-      setLoading(false);
+      setLoading(false); // <-- stop loading
     }
   };
 

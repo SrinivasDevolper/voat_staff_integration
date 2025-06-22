@@ -28,7 +28,7 @@ import Navbar from "./Landing/components/Navbar";
 import ChangePassword from "./studentsComponents/components/ChangePassword";
 import CustomCursor from "./components/CustomCursor";
 import StudentEmailOtp from "./studentsComponents/components/StudentEmailOtp";
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from "react-hot-toast";
 
 import "./App.css";
 
@@ -99,7 +99,7 @@ function App() {
           }
         />
         <Route
-          path="/ChangePassword"
+          path="/reset-password"
           element={
             <StudentLayout>
               <ChangePassword />
