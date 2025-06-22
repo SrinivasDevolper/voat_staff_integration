@@ -1125,48 +1125,6 @@ const loginOtpVerify = async (req, res) => {
   }
 };
 
-// const requestPasswordReset = async (req, res) => {
-//   const { email } = req.body;
-
-//   if (!validator.isEmail(email)) {
-//     return res.status(400).json({ error: "Enter a vaild email" });
-//   }
-
-//   const user = await findUserByEmail(email);
-//   console.log(user, "user");
-//   // Security Best Practice: Respond generically to prevent user enumeration
-//   if (!user) {
-//     console.log(`Password reset requested for non-existent email: ${email}`);
-//     return res.status(404).json({
-//       message: `Password reset requested for non-existent email: ${email}`,
-//     });
-//   }
-
-//   const token = generateToken();
-//   const resetExpires = Date.now() + 3600000; // 1 hour
-
-//   try {
-//     await updateUser(user.id, {
-//       resetToken: token,
-//       resetExpires: resetExpires,
-//     });
-//     // await sendPasswordResetEmail(email, token);
-//     console.log(email, token, "token");
-//     res.json({
-//       message: `Password reset link sent to ${email}`,
-//     });
-//   } catch (error) {
-//     console.log("Password Reset Email Error:", error);
-//     // On error, still return generic message to avoid revealing user existence
-//     return res.status(500).json({
-//       message:
-//         "An error occurred while sending the password reset email. Please try again later.",
-//     });
-//   }
-// };
-
-// Reset Password Controller
-
 const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
 
