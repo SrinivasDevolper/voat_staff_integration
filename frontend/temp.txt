@@ -1,0 +1,129 @@
+Signup:-
+-------------
+Retry, otp expiry: Get otp, Resend otp disabled
+Block time expiry: Get otp, Resend otp, verify otp disabled
+| Feature                     | Status ✅ |
+| --------------------------- | -------- |
+| Email & token validation    | ✅        |
+| DB fetch & token check      | ✅        |
+| Cooldown timer (60s)        | ✅        |
+| Max resend attempts (3)     | ✅        |
+| Shared blocking w/ verify   | ✅        |
+| UI-friendly response fields | ✅        |
+
+
+| Feature                     | Status ✅ |
+| --------------------------- | -------- |
+| Email & token validation    | ✅        |
+| DB fetch & token check      | ✅        |
+| Cooldown timer (60s)        | ✅        |
+| Max resend attempts (3)     | ✅        |
+| Shared blocking w/ verify   | ✅        |
+| UI-friendly response fields | ✅        |
+
+{
+  "message": "New OTP sent successfully!",
+  "tempToken": "a1b2c3d4-e5f6-7890-gh12-ijk345lmno67",
+  "blockExpires": null,
+  "retryIn": 60,
+  "otpExpiresIn": 120,
+  "attemptsLeft": 2
+}
+
+| Field                   | Included | Description                        |
+| ----------------------- | -------- | ---------------------------------- |
+| `retryIn`               | ✅ Yes    | Always `60` seconds                |
+| `otpExpiresIn`          | ✅ Yes    | Always returned when not blocked   |
+| `attemptsLeft`          | ✅ Yes    | Resend attempts left               |
+| `blockExpires`          | ✅ Yes    | Used for timers, resets both flows |
+| `remainingBlockSeconds` | ✅ Yes    | Sent on block                      |
+
+
+
+
+
+
+const [activeTab, setActiveTab] = useState("left");  //this is tab change
+  const [name, setName] = useState(""); //this is for name
+  const [email, setEmail] = useState(""); //this is for email
+  const [password, setPassword] = useState(""); // this is password
+  const [showPassword, setShowPassword] = useState(false);  //this is show and hide password
+  const [selectedFile, setSelectedFile] = useState(null);  // this is for file
+
+  //OTP code
+  const [showOtp, setShowOtp] = useState(false);  //this is for show otp form and hide otp form and otp code related
+  const [otp, setOtp] = useState(new Array(6).fill(""));  //this is for otp
+  const [tempToken, setTempToken] = useState(""); //this is for token not Jwt token
+  const [loading, setLoading] = useState(false); //this is loading
+  const [resendTimer, setResendTimer] = useState(0);  //this is for retryIn cooldown timing
+  // Attempts logic
+  const [attemptsLeft, setAttemptsLeft] = useState(3);  //this is for attempts both for sigup, resend
+  const [lockTimer, setLockTimer] = useState(0);  //this is for block timing
+  const [otpExpiresIn, setOtpExpiresIn] = useState(0);  //this is for otpExpires cooldown timing
+  //verify OTP
+  const [verifyAttemptsLeft, setVerifyAttemptsLeft] = useState(3);  //this is for verifyAttempts
+  const [isBlockTime, setIsBlockTime] = useState(false);  this is for block time is true or false
+
+=================================
+
+Login:-
+-------------
+1. Disabled for Blocked Account (cooldown):- verifyOtp, resendOtp, Login With OTP, Login
+
+2. coolDown timing (retryIn):- Login With OTP
+
+3. otpExpire Timing (2 minute):- resend otp
+
+4. attempts:- attemptsLeftLogin(password button), attemptsLeftOTP(otp login button),
+otpAttemptsLeft(verify attempts)
+
+5. errros, success toast msg
+
+
+| Aspect             | `loginPassword`                                  | `requestLoginOTP`                               |
+| ------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| Login method       | Email + Password                                 | Email + OTP                                     |
+| Tracks             | `loginAttempts` only                             | `loginAttempts` + `otpAttempts`                 |
+| Cooldown (retryIn) | Derived from `lastOtpSent`                       | Enforced if new OTP is requested too soon       |
+| Blocking threshold | `loginAttempts >= 5`                             | `otpAttempts >= 3` OR `loginAttempts >= 5`      |
+| Shared fields      | `loginAttempts`, `lockoutExpires`, `lastOtpSent` | ✅ Both track them for unified logic             |
+| Reset behavior     | On password success or block expiry              | On block expiry or fresh request after cooldown |
+
+user tries with password  ====== with otp login
+
+password(5) 	otp(3)   => overall (5)
+-----------------------------------------
+1. first (5(whole attempts) - 1(password attempt) = 4 (whole attempts)) 2. seconds (5(whole attempts) - 4(password attempt) - (3 (overall otp attempt) - 1(1 otp attempts finished) = 2(final otp value) ) = 3 (whole attempts))
+
+
+message: status or success text
+
+error: error text (if any)
+
+attemptsLeft: calculated dynamically (LIMIT - attempts)
+
+otpAttempts: current OTP attempts count
+
+otpVerifyAttempts: current OTP verification failures
+
+passwordAttempts: current password attempts
+
+retryIn: cooldown before retry (seconds)
+
+otpExpiresIn: seconds remaining for OTP to expire
+
+lockoutExpires: epoch ms timestamp of lockout end
+
+remainingBlockSeconds: how long user is blocked (seconds)
+
+passowrd button:-
+successful:- redirect and stored cookies
+faiure:- loginAttempts, otpAttempts, RetryIn
+
+
+if (attemptsLeft === 0 && lockTimer === 0 && isBlockTime == true) {
+      window.location.reload(); // 🔁 Auto reloads the page
+    }
+
+
+
