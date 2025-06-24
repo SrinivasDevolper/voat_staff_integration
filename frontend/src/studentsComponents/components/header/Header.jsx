@@ -14,6 +14,7 @@ import MobileSidebarContent from "../sideBar/MobileSidebarContent";
 import DesktopSidebarContent from "../sideBar/DesktopSidebarContent";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { Link, useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
 export const navItems = [
   {
@@ -58,6 +59,8 @@ const Header = () => {
   }, []);
 
   const handleLogout = () => {
+    Cookies.remove("jwtToken");
+    Cookies.remove("userDetails");
     console.log("User logged out");
     navigate("/login");
   };
@@ -75,9 +78,11 @@ const Header = () => {
   return (
     <header className="relative">
       {/* Mobile Header */}
-      <div className={`md:hidden fixed top-0 left-0 right-0 z-50 bg-[#0F52BA] text-white py-3 px-4 flex justify-between items-center shadow-md transition-shadow duration-300 ${
-        scrolled ? "breathing-effect" : ""
-      }`}>
+      <div
+        className={`md:hidden fixed top-0 left-0 right-0 z-50 bg-[#0F52BA] text-white py-3 px-4 flex justify-between items-center shadow-md transition-shadow duration-300 ${
+          scrolled ? "breathing-effect" : ""
+        }`}
+      >
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 rounded-full hover:bg-[#1565C0] transition-colors"
@@ -119,7 +124,9 @@ const Header = () => {
                       }`}
                       onClick={() => markAsRead(notification.id)}
                     >
-                      <p className="text-sm text-gray-800">{notification.text}</p>
+                      <p className="text-sm text-gray-800">
+                        {notification.text}
+                      </p>
                       {notification.date && (
                         <p className="text-xs text-gray-500 mt-1">
                           {formatNotificationTime(notification.date)}
@@ -172,9 +179,11 @@ const Header = () => {
       </div>
 
       {/* Desktop Header */}
-      <div className={`absolute top-0 left-0 right-0 w-screen hidden md:flex bg-[#0F52BA] text-white py-4 px-6 justify-between items-center shadow-md z-40 transition-shadow duration-300 ${
-        scrolled ? "breathing-effect" : ""
-      }`}>
+      <div
+        className={`absolute top-0 left-0 right-0 w-screen hidden md:flex bg-[#0F52BA] text-white py-4 px-6 justify-between items-center shadow-md z-40 transition-shadow duration-300 ${
+          scrolled ? "breathing-effect" : ""
+        }`}
+      >
         <Link
           to="/"
           className="flex items-center space-x-2 bg-[#0D47A1] rounded-full px-4 py-2 hover:bg-[#1565C0] transition-colors cursor-pointer"
@@ -184,7 +193,10 @@ const Header = () => {
         </Link>
 
         <h1 className="text-2xl font-bold text-center flex-1">
-          <Link to="/profile" className="flex items-center justify-center flex-1">
+          <Link
+            to="/profile"
+            className="flex items-center justify-center flex-1"
+          >
             VOAT
           </Link>
         </h1>
@@ -223,7 +235,9 @@ const Header = () => {
                       }`}
                       onClick={() => markAsRead(notification.id)}
                     >
-                      <p className="text-sm text-gray-800">{notification.text}</p>
+                      <p className="text-sm text-gray-800">
+                        {notification.text}
+                      </p>
                       {notification.date && (
                         <p className="text-xs text-gray-500 mt-1">
                           {formatNotificationTime(notification.date)}

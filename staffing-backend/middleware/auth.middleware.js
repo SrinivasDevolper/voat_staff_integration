@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 // JWT authentication middleware
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
-
+  console.log("authHeader", authHeader);
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res
       .status(401)
@@ -15,11 +15,11 @@ const authenticateJWT = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Attach user payload to request
-    console.log('Decoded JWT payload (req.user):', req.user);
+    console.log("Decoded JWT payload (req.user):", req.user);
     next();
   } catch (err) {
     return res.status(403).json({ message: "Invalid or expired token" });
   }
 };
 
-module.exports = authenticateJWT; 
+module.exports = authenticateJWT;

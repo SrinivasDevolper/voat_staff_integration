@@ -1,37 +1,37 @@
 const express = require("express");
 const router = express.Router();
-const authController = require("../controllers/auth.controller");
+const authController = require("../controllers/newAuth.controller");
 const { upload } = require("../utils/multerConfig");
-//const { signInOtpLimiter, LoginOtpLimiter } = require("../utils/rateLimiters");
+const { signInOtpLimiter, LoginOtpLimiter } = require("../utils/rateLimiters");
 const authenticateJWT = require("../middleware/auth.middleware");
 
 // Signup Route
-// router.post(
-//   "/signup",
-//   upload.single("file"),
-//   signInOtpLimiter,
-//   authController.signup
-// );
+router.post("/signup", upload.single("file"), authController.signup);
+
+//signupStatus Route
 router.post(
-  "/signup",
-  (req, res, next) => { // Add a middleware to log headers
-    console.log("Incoming Signup Request Headers:", req.headers['content-type']);
-    next();
-  },
+  "/signup-status",
   upload.single("file"),
-  //signInOtpLimiter,
-  authController.signup
+  authController.signupStatus
 );
-// Get Auth Status
-router.get("/status", authController.getAuthStatus);
+
 // Resend Signup OTP Route
-router.post("/resend-signup-otp", /*signInOtpLimiter,*/ authController.resendSignupOTP);
+router.post("/resend-signup-otp", authController.resendSignupOTP);
+
+//Resend Resend Login OTP Route
+router.post("/resend-login-otp", authController.resendLoginOTP);
+
+router.post("/login-verify", authController.loginOtpVerify);
 
 // Login with Password Route
 router.post("/login-password", authController.loginPassword);
 
 // Request Login OTP Route
-router.post("/request-login-otp", /*LoginOtpLimiter,*/ authController.requestLoginOTP);
+router.post(
+  "/request-login-otp",
+  LoginOtpLimiter,
+  authController.requestLoginOTP
+);
 
 // Verify OTP Route (Signup & Login)
 router.post("/verify-otp", authController.verifyOTP);
@@ -52,6 +52,10 @@ router.get("/verify-email-change", authController.verifyEmailChange);
 router.put("/change-password", authenticateJWT, authController.changePassword);
 
 // Request Email Change (Requires authentication)
-router.post("/request-email-change", authenticateJWT, authController.requestEmailChange);
+router.post(
+  "/request-email-change",
+  authenticateJWT,
+  authController.requestEmailChange
+);
 
 module.exports = router;

@@ -34,36 +34,36 @@ export default function OTPLogin() {
 
   const inputRefs = useRef([]);
   const navigate = useNavigate();
-  // useEffect(() => {
-  //   const token = Cookies.get("jwtToken");
-  //   const userDetails = Cookies.get("userDetails");
+  useEffect(() => {
+    const token = Cookies.get("jwtToken");
+    const userDetails = Cookies.get("userDetails");
 
-  //   if (token && userDetails) {
-  //     try {
-  //       const user = JSON.parse(userDetails);
-  //       switch (user.role) {
-  //         case "jobseeker":
-  //           navigate("/profile");
-  //           break;
-  //         case "hr":
-  //           navigate("/hr");
-  //           break;
-  //         case "admin":
-  //           navigate("/admin");
-  //           break;
-  //         case "superadmin":
-  //           navigate("/superadmin");
-  //           break;
-  //         default:
-  //           navigate("/");
-  //       }
-  //     } catch (err) {
-  //       console.error("Invalid userDetails cookie:", err);
-  //       // Cookies.remove("jwtToken");
-  //       // Cookies.remove("userDetails");
-  //     }
-  //   }
-  // }, [navigate]);
+    if (token && userDetails) {
+      try {
+        const user = JSON.parse(userDetails);
+        switch (user.role) {
+          case "jobseeker":
+            navigate("/profile");
+            break;
+          case "hr":
+            navigate("/hr");
+            break;
+          case "admin":
+            navigate("/admin");
+            break;
+          case "superadmin":
+            navigate("/superadmin");
+            break;
+          default:
+            navigate("/");
+        }
+      } catch (err) {
+        console.error("Invalid userDetails cookie:", err);
+        // Cookies.remove("jwtToken");
+        // Cookies.remove("userDetails");
+      }
+    }
+  }, [navigate]);
 
   useEffect(() => {
     if (toast) {
