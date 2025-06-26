@@ -1,6 +1,8 @@
 // Role-based authorization middleware
 const authorize = (roles) => {
+  // console.log("roles", roles);
   return (req, res, next) => {
+    // console.log("rolesNextg", roles);
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -11,4 +13,4 @@ const authorize = (roles) => {
   };
 };
 
-module.exports = authorize; 
+module.exports = authorize;

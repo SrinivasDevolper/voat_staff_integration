@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { FileText, Upload, X, Edit2, Check } from "lucide-react";
 import Header from "./header/Header";
 import { useNavigate, useLocation } from "react-router-dom";
-import toast from 'react-hot-toast';
-
-
+import toast from "react-hot-toast";
+import axios from "axios";
+import { apiUrl } from "../../utilits/apiUrl";
+import Cookies from "js-cookie";
 
 export default function StudentProfile() {
   const navigate = useNavigate();
@@ -23,7 +24,8 @@ export default function StudentProfile() {
     address: "123 Main Street, Mumbai, India",
     skills: "React, JavaScript, TypeScript, Node.js",
     whatsapp: "+91 9876543210",
-    about: "I am a passionate computer science student with a keen interest in web development and software engineering.",
+    about:
+      "I am a passionate computer science student with a keen interest in web development and software engineering.",
   };
 
   const initialParentDetails = {
@@ -40,13 +42,62 @@ export default function StudentProfile() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Update email from localStorage if it changes (e.g., after OTP verification)
   useEffect(() => {
-    const storedEmail = localStorage.getItem('studentEmail');
-    if (storedEmail && storedEmail !== studentDetails.email) {
-      setStudentDetails(prev => ({ ...prev, email: storedEmail }));
-    }
-  }, [location]);
+    const fetchProfile = async () => {
+      try {
+        const token = Cookies.get("jwtToken");
+        console.log(token, "token");
+        const userDetails = Cookies.get("userDetails");
+        const res = await axios.get(`${apiUrl}/jobseeker/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = res.data;
+
+        console.log(data, "data");
+
+        // Optional: You may need to transform keys to match existing state structure
+        setStudentDetails((prev) => ({
+          ...prev,
+          name: data.username,
+          email: data.email,
+          phone: data.phone,
+          gender: data.gender,
+          address: data.address,
+          skills: data.skills,
+          whatsapp: data.whatsapp,
+          about: data.bio,
+        }));
+
+        setParentDetails({
+          name: data.parentDetails_name,
+          phone: data.parentDetails_phone,
+          relation: data.parentDetails_relation,
+          email: data.parentDetails_email,
+        });
+
+        if (data?.resume_filepath) {
+          setResumePreview(data?.resume_filepath);
+          setResumeFile({ name: data.resume_filepath });
+        }
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+        toast.error("Failed to load profile.");
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // Update email from localStorage if it changes (e.g., after OTP verification)
+  // useEffect(() => {
+  //   const storedEmail = localStorage.getItem("studentEmail");
+  //   if (storedEmail && storedEmail !== studentDetails.email) {
+  //     setStudentDetails((prev) => ({ ...prev, email: storedEmail }));
+  //   }
+  // }, [location]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -67,7 +118,10 @@ export default function StudentProfile() {
       newErrors.studentWhatsapp = "WhatsApp number is required";
     if (!studentDetails.about.trim()) {
       newErrors.studentAbout = "About is required";
-    } else if (studentDetails.about.length < 500 || studentDetails.about.length > 5000) {
+    } else if (
+      studentDetails.about.length < 500 ||
+      studentDetails.about.length > 5000
+    ) {
       newErrors.studentAbout = "About must be between 500 and 5000 characters";
     }
 
@@ -102,7 +156,7 @@ export default function StudentProfile() {
 
   const handleParentChange = (e) => {
     const { name, value } = e.target;
-    const fieldName = name.replace('parent', '').toLowerCase();
+    const fieldName = name.replace("parent", "").toLowerCase();
     setParentDetails((prev) => ({
       ...prev,
       [fieldName]: value,
@@ -129,6 +183,7 @@ export default function StudentProfile() {
   };
 
   const handleSubmit = (e) => {
+    console.log("hghfgdfgjk");
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -156,26 +211,26 @@ export default function StudentProfile() {
 
   const renderInput = (label, name, value, type = "text", options = null) => {
     const isParentField = name.startsWith("parent");
-    const isNonEditable = !isParentField && ["name", "email", "phone"].includes(name);
+    const isNonEditable =
+      !isParentField && ["name", "email", "phone"].includes(name);
     const currentEditingState = isParentField ? isParentEditing : isEditing;
 
-   if (name === "password") {
-  return isEditing ? (
-    <div className="mb-3 sm:mb-4">
-      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-        {label} *
-      </label>
-      <button
-        type="button"
-        onClick={() => navigate("/changePassword")}
-        className="px-4 sm:px-5 py-2 bg-[#0F52BA] text-white rounded-lg hover:bg-[#1565C0] transition-colors text-sm sm:text-base"
-      >
-        Update Password
-      </button>
-    </div>
-  ) : null;
-}
-
+    if (name === "password") {
+      return isEditing ? (
+        <div className="mb-3 sm:mb-4">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+            {label} *
+          </label>
+          <button
+            type="button"
+            onClick={() => navigate("/reset-password")}
+            className="px-4 sm:px-5 py-2 bg-[#0F52BA] text-white rounded-lg hover:bg-[#1565C0] transition-colors text-sm sm:text-base"
+          >
+            Update Password
+          </button>
+        </div>
+      ) : null;
+    }
 
     return (
       <div className="mb-3 sm:mb-4" key={name}>
@@ -186,11 +241,7 @@ export default function StudentProfile() {
           <select
             name={name}
             value={value}
-            onChange={
-              isParentField
-                ? handleParentChange
-                : handleStudentChange
-            }
+            onChange={isParentField ? handleParentChange : handleStudentChange}
             className={`w-full px-3 sm:px-4 py-1 sm:py-2 rounded-lg border ${
               errors[name] ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-[#0F52BA] focus:border-transparent text-sm sm:text-base`}
@@ -221,9 +272,7 @@ export default function StudentProfile() {
               name={name}
               value={value}
               onChange={
-                isParentField
-                  ? handleParentChange
-                  : handleStudentChange
+                isParentField ? handleParentChange : handleStudentChange
               }
               className={`w-full px-3 sm:px-4 py-1 sm:py-2 rounded-lg border ${
                 errors[name] ? "border-red-500" : "border-gray-300"
@@ -237,15 +286,26 @@ export default function StudentProfile() {
                 onClick={async (e) => {
                   e.preventDefault();
                   if (isEmailEditing) {
-                    const emailChanged = studentDetails.email !== initialStudentDetails.email;
+                    const emailChanged =
+                      studentDetails.email !== initialStudentDetails.email;
                     const emailRegex = /^\S+@\S+\.\S+$/;
                     if (emailChanged && emailRegex.test(studentDetails.email)) {
-                      toast.success('Please verify your new email address with the OTP sent to it.');
+                      toast.success(
+                        "Please verify your new email address with the OTP sent to it."
+                      );
                       setTimeout(() => {
-                        navigate('/verify-email-otp', { state: { email: studentDetails.email } });
+                        navigate("/verify-email-otp", {
+                          state: { email: studentDetails.email },
+                        });
                       }, 1500);
-                    } else if (emailChanged && !emailRegex.test(studentDetails.email)) {
-                      setErrors((prev) => ({ ...prev, email: 'Email is invalid' }));
+                    } else if (
+                      emailChanged &&
+                      !emailRegex.test(studentDetails.email)
+                    ) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        email: "Email is invalid",
+                      }));
                     }
                     setIsEmailEditing(false);
                   } else {
@@ -260,13 +320,11 @@ export default function StudentProfile() {
           </div>
         )}
         {errors[name] && (
-          <p className="mt-1 text-xs sm:text-sm text-red-600">
-            {errors[name]}
-          </p>
+          <p className="mt-1 text-xs sm:text-sm text-red-600">{errors[name]}</p>
         )}
         {name === "about" && (
           <p className="mt-1 text-xs sm:text-sm text-gray-500">
-            {value.length} / 5000 characters
+            {value?.length} / 5000 characters
           </p>
         )}
       </div>
@@ -279,11 +337,14 @@ export default function StudentProfile() {
       <div className="flex-1 h-screen overflow-y-auto px-4 sm:px-6 pt-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md">
-            <form onSubmit={handleSubmit} onKeyDown={e => {
-              if (e.key === 'Enter' && e.target.type !== 'textarea') {
-                e.preventDefault();
-              }
-            }}>
+            <form
+              onSubmit={handleSubmit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.target.type !== "textarea") {
+                  e.preventDefault();
+                }
+              }}
+            >
               <div className="bg-[#0F52BA] text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg mb-3 sm:mb-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base sm:text-lg font-semibold">
@@ -321,21 +382,24 @@ export default function StudentProfile() {
                           type="email"
                           name="email"
                           value={studentDetails.email}
-                          onChange={e => {
+                          onChange={(e) => {
                             handleStudentChange(e);
                             // Real-time validation
                             const emailRegex = /^\S+@\S+\.\S+$/;
                             if (!emailRegex.test(e.target.value)) {
-                              setErrors(prev => ({ ...prev, email: 'Please enter a valid email address.' }));
+                              setErrors((prev) => ({
+                                ...prev,
+                                email: "Please enter a valid email address.",
+                              }));
                             } else {
-                              setErrors(prev => ({ ...prev, email: '' }));
+                              setErrors((prev) => ({ ...prev, email: "" }));
                             }
                           }}
                           pattern="^\\S+@\\S+\\.\\S+$"
                           className={`w-full px-3 sm:px-4 py-1 sm:py-2 rounded-lg border ${
                             errors.email ? "border-red-500" : "border-gray-300"
                           } focus:outline-none focus:ring-2 focus:ring-[#0F52BA] focus:border-transparent text-sm sm:text-base ${
-                            !isEmailEditing ? 'bg-gray-50' : 'bg-white'
+                            !isEmailEditing ? "bg-gray-50" : "bg-white"
                           }`}
                           disabled={!isEmailEditing}
                           placeholder="Enter email"
@@ -347,15 +411,30 @@ export default function StudentProfile() {
                           onClick={async (e) => {
                             e.preventDefault();
                             if (isEmailEditing) {
-                              const emailChanged = studentDetails.email !== initialStudentDetails.email;
+                              const emailChanged =
+                                studentDetails.email !==
+                                initialStudentDetails.email;
                               const emailRegex = /^\S+@\S+\.\S+$/;
-                              if (emailChanged && emailRegex.test(studentDetails.email)) {
-                                toast.success('Please verify your new email address with the OTP sent to it.');
+                              if (
+                                emailChanged &&
+                                emailRegex.test(studentDetails.email)
+                              ) {
+                                toast.success(
+                                  "Please verify your new email address with the OTP sent to it."
+                                );
                                 setTimeout(() => {
-                                  navigate('/verify-email-otp', { state: { email: studentDetails.email } });
+                                  navigate("/verify-email-otp", {
+                                    state: { email: studentDetails.email },
+                                  });
                                 }, 1500);
-                              } else if (emailChanged && !emailRegex.test(studentDetails.email)) {
-                                setErrors((prev) => ({ ...prev, email: 'Email is invalid' }));
+                              } else if (
+                                emailChanged &&
+                                !emailRegex.test(studentDetails.email)
+                              ) {
+                                setErrors((prev) => ({
+                                  ...prev,
+                                  email: "Email is invalid",
+                                }));
                               }
                               setIsEmailEditing(false);
                             } else {
@@ -365,7 +444,11 @@ export default function StudentProfile() {
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0F52BA] transition-colors"
                           disabled={isEmailEditing && !!errors.email}
                         >
-                          {isEmailEditing ? <Check size={16} /> : <Edit2 size={16} />}
+                          {isEmailEditing ? (
+                            <Check size={16} />
+                          ) : (
+                            <Edit2 size={16} />
+                          )}
                         </button>
                       </div>
                       {errors.email && (
@@ -377,13 +460,19 @@ export default function StudentProfile() {
                         <div className="mt-1 flex flex-col items-start">
                           <div className="w-full h-0.5 bg-red-500 rounded-full mb-1" />
                           <span className="text-xs text-red-600 font-medium italic">
-                            <span className="text-red-600 font-bold mr-1">*</span>
+                            <span className="text-red-600 font-bold mr-1">
+                              *
+                            </span>
                             This field requires OTP verification when changed.
                           </span>
                         </div>
                       )}
                     </div>
-                    {renderInput("Password", "password", studentDetails.password)}
+                    {renderInput(
+                      "Password",
+                      "password",
+                      studentDetails.password
+                    )}
                     {renderInput(
                       "Phone Number",
                       "phone",

@@ -2,13 +2,33 @@ const { pool } = require("../config/db");
 const validator = require("validator");
 const path = require("path");
 const fs = require("fs");
-const { findJobseekerProfileByUserId, updateJobseekerResumePath, updateJobseekerProfile, getJobseekerResumePathByUserId, findJobs, findJobById, findAppliedJobs, checkJobExists, findExistingApplication, createJobApplication, findScheduleByUserId, findNotificationsByUserId, countUnreadNotifications, updateNotificationReadStatus, markAllNotificationsRead: markAllNotificationsReadHelper, deleteNotificationById, findUpcomingNotifications } = require("../utils/dbHelpers");
+const {
+  findJobseekerProfileByUserId,
+  updateJobseekerResumePath,
+  updateJobseekerProfile,
+  getJobseekerResumePathByUserId,
+  findJobs,
+  findJobById,
+  findAppliedJobs,
+  checkJobExists,
+  findExistingApplication,
+  createJobApplication,
+  findScheduleByUserId,
+  findNotificationsByUserId,
+  countUnreadNotifications,
+  updateNotificationReadStatus,
+  markAllNotificationsRead: markAllNotificationsReadHelper,
+  deleteNotificationById,
+  findUpcomingNotifications,
+} = require("../utils/dbHelpers");
 const { upload } = require("../utils/multerConfig");
 
 // Multer error handler middleware
 function multerErrorHandler(err, req, res, next) {
   if (err && err.code === "LIMIT_FILE_SIZE") {
-    return res.status(400).json({ error: { code: 400, message: "File size exceeds limit (5MB)." } });
+    return res.status(400).json({
+      error: { code: 400, message: "File size exceeds limit (5MB)." },
+    });
   }
   if (err && err.message && err.message.startsWith("Invalid file type")) {
     return res.status(400).json({ error: { code: 400, message: err.message } });
@@ -21,6 +41,8 @@ const getProfile = async (req, res) => {
   try {
     // console.log('Debug: getProfile - req.user.id at start of function:', req.user.id);
     const profile = await findJobseekerProfileByUserId(req.user.id);
+
+    console.log(profile, "proflie");
 
     if (!profile) {
       return res.status(404).json({ error: "Jobseeker profile not found." });
@@ -68,22 +90,40 @@ const uploadResume = async (req, res) => {
       }
     }
 
-    res.json({ message: "Resume uploaded successfully.", resumeUrl: newResume_filepath });
+    res.json({
+      message: "Resume uploaded successfully.",
+      resumeUrl: newResume_filepath,
+    });
   } catch (error) {
     console.error("Error uploading resume:", error);
-    res.status(500).json({ error: { code: 500, message: "Failed to upload resume. Please try again." } });
+    res.status(500).json({
+      error: {
+        code: 500,
+        message: "Failed to upload resume. Please try again.",
+      },
+    });
   }
 };
 
 // GET /jobseeker/api/profile/resume
 const getResume = async (req, res) => {
   try {
-    const resumeRelativePath = await getJobseekerResumePathByUserId(req.user.id);
-    console.log('Debug: getResume - Retrieved resumeRelativePath from DB:', resumeRelativePath);
+    const resumeRelativePath = await getJobseekerResumePathByUserId(
+      req.user.id
+    );
+    console.log(
+      "Debug: getResume - Retrieved resumeRelativePath from DB:",
+      resumeRelativePath
+    );
 
     if (!resumeRelativePath) {
-      console.log('Debug: getResume - No resumeRelativePath found for user_id:', req.user.id);
-      return res.status(404).json({ error: { code: 404, message: "Resume not found for this jobseeker." } });
+      console.log(
+        "Debug: getResume - No resumeRelativePath found for user_id:",
+        req.user.id
+      );
+      return res.status(404).json({
+        error: { code: 404, message: "Resume not found for this jobseeker." },
+      });
     }
 
     // Instead of serving the file, return the URL path
@@ -103,69 +143,169 @@ const updateProfile = async (req, res) => {
     const errors = [];
 
     // Input validation (simplified, as dbHelper handles data distribution)
-    if (profileUpdates.name !== undefined && (typeof profileUpdates.name !== 'string' || profileUpdates.name.length > 255)) {
+    if (
+      profileUpdates.name !== undefined &&
+      (typeof profileUpdates.name !== "string" ||
+        profileUpdates.name.length > 255)
+    ) {
       errors.push("Name must be a string and less than 255 characters.");
     }
-    if (profileUpdates.phone !== undefined && (typeof profileUpdates.phone !== 'string' || !validator.isMobilePhone(profileUpdates.phone, 'any'))) {
+    if (
+      profileUpdates.phone !== undefined &&
+      (typeof profileUpdates.phone !== "string" ||
+        !validator.isMobilePhone(profileUpdates.phone, "any"))
+    ) {
       errors.push("Phone must be a valid mobile number.");
     }
-    if (profileUpdates.gender !== undefined && (typeof profileUpdates.gender !== 'string' || !['Male', 'Female', 'Other', 'Prefer not to say'].includes(profileUpdates.gender))) {
-      errors.push("Gender must be 'Male', 'Female', 'Other', or 'Prefer not to say'.");
+    if (
+      profileUpdates.gender !== undefined &&
+      (typeof profileUpdates.gender !== "string" ||
+        !["Male", "Female", "Other", "Prefer not to say"].includes(
+          profileUpdates.gender
+        ))
+    ) {
+      errors.push(
+        "Gender must be 'Male', 'Female', 'Other', or 'Prefer not to say'."
+      );
     }
-    if (profileUpdates.address !== undefined && (typeof profileUpdates.address !== 'string' || profileUpdates.address.length > 1000)) {
+    if (
+      profileUpdates.address !== undefined &&
+      (typeof profileUpdates.address !== "string" ||
+        profileUpdates.address.length > 1000)
+    ) {
       errors.push("Address must be a string and less than 1000 characters.");
     }
-    if (profileUpdates.whatsapp !== undefined && (typeof profileUpdates.whatsapp !== 'string' || !validator.isMobilePhone(profileUpdates.whatsapp, 'any'))) {
+    if (
+      profileUpdates.whatsapp !== undefined &&
+      (typeof profileUpdates.whatsapp !== "string" ||
+        !validator.isMobilePhone(profileUpdates.whatsapp, "any"))
+    ) {
       errors.push("Whatsapp must be a valid mobile number.");
     }
-    if (profileUpdates.bio !== undefined && (typeof profileUpdates.bio !== 'string' || profileUpdates.bio.length > 1000)) {
+    if (
+      profileUpdates.bio !== undefined &&
+      (typeof profileUpdates.bio !== "string" ||
+        profileUpdates.bio.length > 1000)
+    ) {
       errors.push("Bio must be a string and less than 1000 characters.");
     }
-    if (profileUpdates.portfolio !== undefined && (typeof profileUpdates.portfolio !== 'string' || !validator.isURL(profileUpdates.portfolio) || profileUpdates.portfolio.length > 500)) {
-      errors.push("Portfolio must be a valid URL and less than 500 characters.");
+    if (
+      profileUpdates.portfolio !== undefined &&
+      (typeof profileUpdates.portfolio !== "string" ||
+        !validator.isURL(profileUpdates.portfolio) ||
+        profileUpdates.portfolio.length > 500)
+    ) {
+      errors.push(
+        "Portfolio must be a valid URL and less than 500 characters."
+      );
     }
-    if (profileUpdates.education !== undefined && (typeof profileUpdates.education !== 'string' || profileUpdates.education.length > 1000)) {
+    if (
+      profileUpdates.education !== undefined &&
+      (typeof profileUpdates.education !== "string" ||
+        profileUpdates.education.length > 1000)
+    ) {
       errors.push("Education must be a string and less than 1000 characters.");
     }
-    if (profileUpdates.experience_years !== undefined && (typeof profileUpdates.experience_years !== 'number' || profileUpdates.experience_years < 0 || profileUpdates.experience_years > 99)) {
-      errors.push("Experience years must be a non-negative number and less than 100.");
+    if (
+      profileUpdates.experience_years !== undefined &&
+      (typeof profileUpdates.experience_years !== "number" ||
+        profileUpdates.experience_years < 0 ||
+        profileUpdates.experience_years > 99)
+    ) {
+      errors.push(
+        "Experience years must be a non-negative number and less than 100."
+      );
     }
 
     // Validation for JSON fields (skills, projects, certifications)
     if (profileUpdates.skills !== undefined) {
-      if (!Array.isArray(profileUpdates.skills) || profileUpdates.skills.some(s => typeof s !== 'string' || s.length > 50)) {
-        errors.push("Skills must be an array of strings, each less than 50 characters.");
+      if (
+        !Array.isArray(profileUpdates.skills) ||
+        profileUpdates.skills.some(
+          (s) => typeof s !== "string" || s.length > 50
+        )
+      ) {
+        errors.push(
+          "Skills must be an array of strings, each less than 50 characters."
+        );
       }
     }
     if (profileUpdates.projects !== undefined) {
-      if (!Array.isArray(profileUpdates.projects) || profileUpdates.projects.some(p => typeof p !== 'object' || p === null || !p.title || typeof p.title !== 'string' || p.title.length > 255)) {
-        errors.push("Projects must be an array of objects with a title (string, max 255 chars).");
+      if (
+        !Array.isArray(profileUpdates.projects) ||
+        profileUpdates.projects.some(
+          (p) =>
+            typeof p !== "object" ||
+            p === null ||
+            !p.title ||
+            typeof p.title !== "string" ||
+            p.title.length > 255
+        )
+      ) {
+        errors.push(
+          "Projects must be an array of objects with a title (string, max 255 chars)."
+        );
       }
     }
     if (profileUpdates.certifications !== undefined) {
-      if (!Array.isArray(profileUpdates.certifications) || profileUpdates.certifications.some(c => typeof c !== 'object' || c === null || !c.name || typeof c.name !== 'string' || c.name.length > 255)) {
-        errors.push("Certifications must be an array of objects with a name (string, max 255 chars).");
+      if (
+        !Array.isArray(profileUpdates.certifications) ||
+        profileUpdates.certifications.some(
+          (c) =>
+            typeof c !== "object" ||
+            c === null ||
+            !c.name ||
+            typeof c.name !== "string" ||
+            c.name.length > 255
+        )
+      ) {
+        errors.push(
+          "Certifications must be an array of objects with a name (string, max 255 chars)."
+        );
       }
     }
 
     // Validation for parentDetails object
     if (profileUpdates.parentDetails !== undefined) {
-        if (typeof profileUpdates.parentDetails !== 'object' || profileUpdates.parentDetails === null) {
-            errors.push("Parent details must be an object.");
-        } else {
-            if (profileUpdates.parentDetails.name !== undefined && (typeof profileUpdates.parentDetails.name !== 'string' || profileUpdates.parentDetails.name.length > 255)) {
-                errors.push("Parent name must be a string and less than 255 characters.");
-            }
-            if (profileUpdates.parentDetails.phone !== undefined && (typeof profileUpdates.parentDetails.phone !== 'string' || !validator.isMobilePhone(profileUpdates.parentDetails.phone, 'any'))) {
-                errors.push("Parent phone must be a valid mobile number.");
-            }
-            if (profileUpdates.parentDetails.relation !== undefined && (typeof profileUpdates.parentDetails.relation !== 'string' || profileUpdates.parentDetails.relation.length > 50)) {
-                errors.push("Parent relation must be a string and less than 50 characters.");
-            }
-            if (profileUpdates.parentDetails.email !== undefined && (typeof profileUpdates.parentDetails.email !== 'string' || !validator.isEmail(profileUpdates.parentDetails.email))) {
-                errors.push("Parent email must be a valid email address.");
-            }
+      if (
+        typeof profileUpdates.parentDetails !== "object" ||
+        profileUpdates.parentDetails === null
+      ) {
+        errors.push("Parent details must be an object.");
+      } else {
+        if (
+          profileUpdates.parentDetails.name !== undefined &&
+          (typeof profileUpdates.parentDetails.name !== "string" ||
+            profileUpdates.parentDetails.name.length > 255)
+        ) {
+          errors.push(
+            "Parent name must be a string and less than 255 characters."
+          );
         }
+        if (
+          profileUpdates.parentDetails.phone !== undefined &&
+          (typeof profileUpdates.parentDetails.phone !== "string" ||
+            !validator.isMobilePhone(profileUpdates.parentDetails.phone, "any"))
+        ) {
+          errors.push("Parent phone must be a valid mobile number.");
+        }
+        if (
+          profileUpdates.parentDetails.relation !== undefined &&
+          (typeof profileUpdates.parentDetails.relation !== "string" ||
+            profileUpdates.parentDetails.relation.length > 50)
+        ) {
+          errors.push(
+            "Parent relation must be a string and less than 50 characters."
+          );
+        }
+        if (
+          profileUpdates.parentDetails.email !== undefined &&
+          (typeof profileUpdates.parentDetails.email !== "string" ||
+            !validator.isEmail(profileUpdates.parentDetails.email))
+        ) {
+          errors.push("Parent email must be a valid email address.");
+        }
+      }
     }
 
     if (errors.length > 0) {
@@ -178,7 +318,10 @@ const updateProfile = async (req, res) => {
     // Fetch the updated profile to return the latest state
     const updatedProfile = await findJobseekerProfileByUserId(userId);
 
-    res.json({ message: "Profile updated successfully.", profile: updatedProfile });
+    res.json({
+      message: "Profile updated successfully.",
+      profile: updatedProfile,
+    });
   } catch (error) {
     console.error("Error updating job seeker profile:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -188,20 +331,31 @@ const updateProfile = async (req, res) => {
 // GET /jobseeker/api/jobs
 const getJobs = async (req, res) => {
   try {
-    let { q, experienceLevel, location, datePosted, isUrgent, page = 1, limit = 10, minSalary, maxSalary, employmentType } = req.query;
+    let {
+      q,
+      experienceLevel,
+      location,
+      datePosted,
+      isUrgent,
+      page = 1,
+      limit = 10,
+      minSalary,
+      maxSalary,
+      employmentType,
+    } = req.query;
 
     // Pass all query parameters to the centralized helper function
-    const { jobs, totalJobs, totalPages, currentPage } = await findJobs({ 
-      q, 
-      experienceLevel, 
-      location, 
-      datePosted, 
-      isUrgent, 
-      page, 
-      limit, 
-      minSalary, 
-      maxSalary, 
-      employmentType 
+    const { jobs, totalJobs, totalPages, currentPage } = await findJobs({
+      q,
+      experienceLevel,
+      location,
+      datePosted,
+      isUrgent,
+      page,
+      limit,
+      minSalary,
+      maxSalary,
+      employmentType,
     });
 
     res.json({
@@ -225,25 +379,39 @@ const getJobById = async (req, res) => {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ error: { code: 400, message: "Job ID is required." } });
+      return res
+        .status(400)
+        .json({ error: { code: 400, message: "Job ID is required." } });
     }
 
     const jobId = parseInt(id, 10); // Parse to integer
     if (isNaN(jobId)) {
-      return res.status(400).json({ error: { code: 400, message: "Invalid Job ID format. Must be a number." } });
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: "Invalid Job ID format. Must be a number.",
+        },
+      });
     }
 
     // Use the helper function to fetch the job
     const job = await findJobById(jobId); // Use findJobById
 
     if (!job) {
-      return res.status(404).json({ error: { code: 404, message: "Job posting not found." } });
+      return res
+        .status(404)
+        .json({ error: { code: 404, message: "Job posting not found." } });
     }
 
     res.json(job);
   } catch (error) {
     console.error("Error fetching job by ID:", error);
-    res.status(500).json({ error: { code: 500, message: "Failed to retrieve job details. Please try again." } });
+    res.status(500).json({
+      error: {
+        code: 500,
+        message: "Failed to retrieve job details. Please try again.",
+      },
+    });
   }
 };
 
@@ -254,9 +422,22 @@ const getAppliedJobs = async (req, res) => {
     const jobseekerId = req.user.id;
 
     // Validate status parameter if provided
-    const allowedStatuses = ['Applied', 'Reviewed', 'Interviewed', 'Rejected', 'Hired']; // Define your allowed statuses
+    const allowedStatuses = [
+      "Applied",
+      "Reviewed",
+      "Interviewed",
+      "Rejected",
+      "Hired",
+    ]; // Define your allowed statuses
     if (status && !allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: { code: 400, message: `Invalid status parameter. Allowed values are: ${allowedStatuses.join(', ')}.` } });
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: `Invalid status parameter. Allowed values are: ${allowedStatuses.join(
+            ", "
+          )}.`,
+        },
+      });
     }
 
     const appliedJobs = await findAppliedJobs(jobseekerId, status);
@@ -278,25 +459,44 @@ const applyJob = async (req, res) => {
     // Check if the job exists using the helper function
     const jobExists = await checkJobExists(job_id);
     if (!jobExists) {
-      return res.status(404).json({ error: { code: 404, message: "Job not found." } });
+      return res
+        .status(404)
+        .json({ error: { code: 404, message: "Job not found." } });
     }
 
     // Get the jobseeker's current resume filepath
-    const jobseekerResumePath = await getJobseekerResumePathByUserId(req.user.id);
+    const jobseekerResumePath = await getJobseekerResumePathByUserId(
+      req.user.id
+    );
 
     // Optional: Enforce resume requirement for applying
     if (!jobseekerResumePath) {
-      return res.status(400).json({ error: { code: 400, message: "Please upload your resume before applying for a job." } });
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: "Please upload your resume before applying for a job.",
+        },
+      });
     }
 
     // Check if already applied using the helper function
     const alreadyApplied = await findExistingApplication(job_id, req.user.id);
     if (alreadyApplied) {
-      return res.status(409).json({ error: { code: 409, message: "You have already applied for this job." } });
+      return res.status(409).json({
+        error: {
+          code: 409,
+          message: "You have already applied for this job.",
+        },
+      });
     }
 
     // Insert new application using the helper function
-    const applicationId = await createJobApplication(job_id, req.user.id, jobseekerResumePath, "Applied");
+    const applicationId = await createJobApplication(
+      job_id,
+      req.user.id,
+      jobseekerResumePath,
+      "Applied"
+    );
 
     res.status(201).json({
       message: "Job application submitted successfully",
@@ -320,16 +520,28 @@ const getSchedule = async (req, res) => {
 
     // Validate date parameters if provided
     if (startDate && !validator.isISO8601(startDate)) {
-      return res.status(400).json({ error: { code: 400, message: "Invalid startDate format. Expected YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ." } });
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message:
+            "Invalid startDate format. Expected YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ.",
+        },
+      });
     }
     if (endDate && !validator.isISO8601(endDate)) {
-      return res.status(400).json({ error: { code: 400, message: "Invalid endDate format. Expected YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ." } });
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message:
+            "Invalid endDate format. Expected YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ.",
+        },
+      });
     }
 
     const schedules = await findScheduleByUserId(userId, startDate, endDate);
 
     // Format the date/time for the frontend if needed, though MySQL datetime should be fine
-    const formattedSchedules = schedules.map(schedule => {
+    const formattedSchedules = schedules.map((schedule) => {
       // If the date is a MySQL DATETIME string, it's usually already in a compatible format
       // If it's a Date object from the driver, .toISOString() is good.
       // Let's assume it's a string from MySQL and just return it, or convert if necessary.
@@ -342,7 +554,9 @@ const getSchedule = async (req, res) => {
     res.json({ schedule: formattedSchedules });
   } catch (error) {
     console.error("Error fetching schedule:", error);
-    res.status(500).json({ error: { code: 500, message: "Internal server error" } });
+    res
+      .status(500)
+      .json({ error: { code: 500, message: "Internal server error" } });
   }
 };
 
@@ -354,16 +568,38 @@ const getNotifications = async (req, res) => {
 
     // Validate date parameter if provided
     if (date && !validator.isISO8601(date)) {
-      return res.status(400).json({ error: { code: 400, message: "Invalid date format. Expected YYYY-MM-DD." } });
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: "Invalid date format. Expected YYYY-MM-DD.",
+        },
+      });
     }
 
     // Validate type parameter if provided
-    const allowedNotificationTypes = ['interview', 'application_status', 'announcement', 'system']; // Define your allowed types
+    const allowedNotificationTypes = [
+      "interview",
+      "application_status",
+      "announcement",
+      "system",
+    ]; // Define your allowed types
     if (type && !allowedNotificationTypes.includes(type)) {
-      return res.status(400).json({ error: { code: 400, message: `Invalid notification type. Allowed values are: ${allowedNotificationTypes.join(', ')}.` } });
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: `Invalid notification type. Allowed values are: ${allowedNotificationTypes.join(
+            ", "
+          )}.`,
+        },
+      });
     }
 
-    const notifications = await findNotificationsByUserId(userId, date, readStatus, type);
+    const notifications = await findNotificationsByUserId(
+      userId,
+      date,
+      readStatus,
+      type
+    );
 
     // Get unread count separately using the helper function
     const unreadCount = await countUnreadNotifications(userId);
@@ -381,20 +617,40 @@ const markNotificationRead = async (req, res) => {
     const { id } = req.params;
     const { read } = req.body; // Expecting { "read": true/false }
 
-    if (read === undefined || typeof read !== 'boolean') {
-      return res.status(400).json({ error: { code: 400, message: "'read' status is required and must be a boolean." } });
+    if (read === undefined || typeof read !== "boolean") {
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: "'read' status is required and must be a boolean.",
+        },
+      });
     }
 
-    const affectedRows = await updateNotificationReadStatus(id, req.user.id, read); // Use helper function
+    const affectedRows = await updateNotificationReadStatus(
+      id,
+      req.user.id,
+      read
+    ); // Use helper function
 
     if (affectedRows === 0) {
-      return res.status(404).json({ error: { code: 404, message: "Notification not found or does not belong to user" } });
+      return res.status(404).json({
+        error: {
+          code: 404,
+          message: "Notification not found or does not belong to user",
+        },
+      });
     }
 
-    res.json({ message: "Notification status updated successfully.", notificationId: id, readStatus: read });
+    res.json({
+      message: "Notification status updated successfully.",
+      notificationId: id,
+      readStatus: read,
+    });
   } catch (error) {
     console.error("Error marking notification as read:", error);
-    res.status(500).json({ error: { code: 500, message: "Internal server error" } });
+    res
+      .status(500)
+      .json({ error: { code: 500, message: "Internal server error" } });
   }
 };
 
@@ -403,10 +659,15 @@ const markAllNotificationsRead = async (req, res) => {
   try {
     const userId = req.user.id;
     const affectedRows = await markAllNotificationsReadHelper(userId); // Call the renamed helper
-    res.json({ message: `All notifications marked as read for jobseeker '${userId}'.`, affectedRows });
+    res.json({
+      message: `All notifications marked as read for jobseeker '${userId}'.`,
+      affectedRows,
+    });
   } catch (error) {
     console.error("Error marking all notifications as read:", error);
-    res.status(500).json({ error: { code: 500, message: "Internal server error" } });
+    res
+      .status(500)
+      .json({ error: { code: 500, message: "Internal server error" } });
   }
 };
 
@@ -418,13 +679,23 @@ const deleteNotification = async (req, res) => {
     const affectedRows = await deleteNotificationById(id, req.user.id); // Use helper function
 
     if (affectedRows === 0) {
-      return res.status(404).json({ error: { code: 404, message: "Notification not found or does not belong to user" } });
+      return res.status(404).json({
+        error: {
+          code: 404,
+          message: "Notification not found or does not belong to user",
+        },
+      });
     }
 
-    res.json({ message: "Notification deleted successfully.", notificationId: id });
+    res.json({
+      message: "Notification deleted successfully.",
+      notificationId: id,
+    });
   } catch (error) {
     console.error("Error deleting notification:", error);
-    res.status(500).json({ error: { code: 500, message: "Internal server error" } });
+    res
+      .status(500)
+      .json({ error: { code: 500, message: "Internal server error" } });
   }
 };
 
@@ -435,12 +706,17 @@ const getUpcomingNotifications = async (req, res) => {
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-    const upcomingNotifications = await findUpcomingNotifications(req.user.id, sevenDaysFromNow); // Use helper function
+    const upcomingNotifications = await findUpcomingNotifications(
+      req.user.id,
+      sevenDaysFromNow
+    ); // Use helper function
 
     res.json({ upcomingNotifications: upcomingNotifications });
   } catch (error) {
     console.error("Error fetching upcoming notifications:", error);
-    res.status(500).json({ error: { code: 500, message: "Internal server error" } });
+    res
+      .status(500)
+      .json({ error: { code: 500, message: "Internal server error" } });
   }
 };
 
