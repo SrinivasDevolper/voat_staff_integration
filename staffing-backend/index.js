@@ -1,5 +1,10 @@
 const express = require("express");
 const cors = require("cors");
+// const corsOptions = {
+//   origin: "http://localhost:5174", // Vite's default port
+//   credentials: true,
+// };
+const dotenv = require("dotenv");
 const path = require("path");
 const {
   signInOtpLimiter,
@@ -17,6 +22,10 @@ const adminRoutes = require("./routes/admin.routes.js");
 const hrRoutes = require("./routes/hr.routes.js");
 const { testDbConnection } = require("./config/db.js");
 
+dotenv.config();
+//console.log('DB_PASSWORD from .env:', process.env.DB_PASSWORD);
+// console.log('GMAIL_USER:', process.env.GMAIL_USER);
+// console.log('GMAIL_APP_PASS:', process.env.GMAIL_APP_PASS);
 require("./config/env.js");
 
 testDbConnection();

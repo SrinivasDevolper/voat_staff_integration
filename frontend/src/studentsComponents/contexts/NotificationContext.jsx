@@ -1,62 +1,79 @@
+
 import { 
   createContext, 
   useState, 
   useContext, 
   useCallback, 
-  useMemo,
-  useEffect 
+  useMemo 
 } from 'react';
-import axios from 'axios';
 
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState([]); // Initialize as empty array
-  
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const response = await axios.get('/api/jobseeker/notifications', { withCredentials: true });
-      const fetchedNotifications = response.data.notifications.map(n => ({
-        id: n.notification_id,
-        text: n.title, // Placeholder, will refine based on user input
-        read: n.is_read === 1,
-        date: new Date(n.created_at),
-        type: n.type
-      }));
-      setNotifications(fetchedNotifications);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      // Optionally, set an error state or show a toast notification
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  const [notifications, setNotifications] = useState([
+    { 
+      id: 1, 
+      text: "HR from TechCorp scheduled an interview for April 15", 
+      read: false, 
+      date: new Date(2025, 3, 15),
+      type: "interview"
+    },
+    { 
+      id: 10, 
+      text: "HR from TechCorp scheduled an interview for April 15", 
+      read: false, 
+      date: new Date(2025, 3, 15),
+      type: "interview"
+    },
+    { 
+      id: 11, 
+      text: "HR from TechCorp scheduled an interview for April 15", 
+      read: false, 
+      date: new Date(2025, 3, 15),
+      type: "interview"
+    },
+    { 
+      id: 12, 
+      text: "HR from TechCorp scheduled an interview for April 15", 
+      read: false, 
+      date: new Date(2025, 3, 15),
+      type: "interview"
+    },
+    { 
+      id: 2, 
+      text: "Reminder: Interview with DesignHub tomorrow at 2 PM", 
+      read: true, 
+      date: new Date(2025, 3, 18),
+      type: "reminder"
+    },
+    { 
+      id: 3, 
+      text: "New job posting matches your profile", 
+      read: false,
+      type: "job-alert" 
+    },
+    { 
+      id: 4, 
+      text: "Follow-up required for application submitted April 3", 
+      read: false, 
+      date: new Date(2025, 3, 3),
+      type: "follow-up"
+    },
+  ]);
 
   const unreadCount = useMemo(
     () => notifications.filter(n => !n.read).length,
     [notifications]
   );
 
-  const markAsRead = useCallback(async (id) => {
-    try {
-      await axios.put(`/api/jobseeker/notifications/${id}/read`, {}, { withCredentials: true });
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
-      );
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
+  const markAsRead = useCallback((id) => {
+    setNotifications(prev =>
+      prev.map(n => n.id === id ? { ...n, read: true } : n)
+    );
   }, []);
 
-  const markAllAsRead = useCallback(async () => {
-    try {
-      await axios.put('/api/jobseeker/notifications/mark-all-read', {}, { withCredentials: true });
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
   const getNotificationsForDate = useCallback((date) => {
@@ -83,8 +100,6 @@ export const NotificationProvider = ({ children }) => {
   }, [notifications]);
 
   const addNotification = useCallback((text, date, type = "general") => {
-    // This function might be less relevant if all notifications come from backend
-    // but kept for potential frontend-only notifications or immediate updates
     const newNotification = {
       id: Date.now(),
       text,
@@ -95,14 +110,8 @@ export const NotificationProvider = ({ children }) => {
     setNotifications(prev => [newNotification, ...prev]);
   }, []);
 
-  const deleteNotification = useCallback(async (id) => {
-    // Implement backend API call for deletion if needed
-    try {
-      await axios.delete(`/api/jobseeker/notifications/${id}`, { withCredentials: true });
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
+  const deleteNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
   const value = useMemo(() => ({
