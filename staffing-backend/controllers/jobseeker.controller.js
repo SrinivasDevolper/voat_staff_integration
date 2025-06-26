@@ -39,8 +39,7 @@ function multerErrorHandler(err, req, res, next) {
 // GET /jobseeker/api/profile
 const getProfile = async (req, res) => {
   try {
-    console.log("hello");
-    console.log(req.user.id, "req.user.id");
+    // console.log('Debug: getProfile - req.user.id at start of function:', req.user.id);
     const profile = await findJobseekerProfileByUserId(req.user.id);
 
     console.log(profile, "proflie");
@@ -60,29 +59,34 @@ const getProfile = async (req, res) => {
 const uploadResume = async (req, res) => {
   try {
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ error: { code: 400, message: "No resume file provided." } });
+      console.log('Debug: uploadResume - No file provided in request.');
+      return res.status(400).json({ error: { code: 400, message: "No resume file provided." } });
     }
 
     const newResumeFilename = req.file.filename;
     const newResume_filepath = `/uploads/resumes/${newResumeFilename}`;
+    console.log('Debug: uploadResume - New resume filename:', newResumeFilename);
+    console.log('Debug: uploadResume - New resume filepath (relative to root):', newResume_filepath);
 
     // Get the old resume path to delete it if it exists
-    const oldResume_filepath = await getJobseekerResumePathByUserId(
-      req.user.id
-    );
+    const oldResume_filepath = await getJobseekerResumePathByUserId(req.user.id);
+    console.log('Debug: uploadResume - Old resume filepath from DB:', oldResume_filepath);
 
     // Update the jobseeker's resume_filepath in the database
     await updateJobseekerResumePath(req.user.id, newResume_filepath);
+    console.log('Debug: uploadResume - Database updated for user_id:', req.user.id, 'with new path:', newResume_filepath);
 
     // If an old resume existed, delete it from the filesystem after successful database update
     if (oldResume_filepath) {
       const oldFilePath = path.join(__dirname, "..", oldResume_filepath);
+      console.log('Debug: uploadResume - Attempting to delete old file at:', oldFilePath);
       if (fs.existsSync(oldFilePath)) {
         fs.unlink(oldFilePath, (err) => {
           if (err) console.error("Error deleting old resume file:", err);
+          else console.log('Debug: uploadResume - Successfully deleted old resume file.');
         });
+      } else {
+        console.log('Debug: uploadResume - Old resume file did not exist at expected path:', oldFilePath);
       }
     }
 
@@ -122,52 +126,11 @@ const getResume = async (req, res) => {
       });
     }
 
-    let filePath;
-    const expectedResumeSubdirPath = path.join(
-      __dirname,
-      "..",
-      "uploads",
-      "resumes",
-      path.basename(resumeRelativePath)
-    );
-    const oldResumeRootPath = path.join(
-      __dirname,
-      "..",
-      "uploads",
-      path.basename(resumeRelativePath)
-    );
-
-    if (fs.existsSync(expectedResumeSubdirPath)) {
-      filePath = expectedResumeSubdirPath;
-    } else if (fs.existsSync(oldResumeRootPath)) {
-      filePath = oldResumeRootPath;
-    } else {
-      console.error(
-        `Resume file not found in either expected path: ${expectedResumeSubdirPath} or ${oldResumeRootPath}`
-      );
-      return res.status(404).json({
-        error: { code: 404, message: "Resume file not found on server." },
-      });
-    }
-
-    console.log("Debug: getResume - Constructed filePath:", filePath);
-
-    res.download(filePath, (err) => {
-      if (err) {
-        console.error("Error sending resume file:", err);
-        res.status(500).json({
-          error: {
-            code: 500,
-            message: "Failed to retrieve resume. Please try again.",
-          },
-        });
-      }
-    });
+    // Instead of serving the file, return the URL path
+    res.json({ resumeUrl: resumeRelativePath });
   } catch (error) {
-    console.error("Error retrieving resume:", error);
-    res
-      .status(500)
-      .json({ error: { code: 500, message: "Internal server error" } });
+    console.error("Error retrieving resume URL:", error);
+    res.status(500).json({ error: { code: 500, message: "Internal server error" } });
   }
 };
 
