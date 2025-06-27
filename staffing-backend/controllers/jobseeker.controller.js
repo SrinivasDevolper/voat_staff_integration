@@ -59,34 +59,61 @@ const getProfile = async (req, res) => {
 const uploadResume = async (req, res) => {
   try {
     if (!req.file) {
-      console.log('Debug: uploadResume - No file provided in request.');
-      return res.status(400).json({ error: { code: 400, message: "No resume file provided." } });
+      console.log("Debug: uploadResume - No file provided in request.");
+      return res
+        .status(400)
+        .json({ error: { code: 400, message: "No resume file provided." } });
     }
 
     const newResumeFilename = req.file.filename;
     const newResume_filepath = `/uploads/resumes/${newResumeFilename}`;
-    console.log('Debug: uploadResume - New resume filename:', newResumeFilename);
-    console.log('Debug: uploadResume - New resume filepath (relative to root):', newResume_filepath);
+    console.log(
+      "Debug: uploadResume - New resume filename:",
+      newResumeFilename
+    );
+    console.log(
+      "Debug: uploadResume - New resume filepath (relative to root):",
+      newResume_filepath
+    );
 
     // Get the old resume path to delete it if it exists
-    const oldResume_filepath = await getJobseekerResumePathByUserId(req.user.id);
-    console.log('Debug: uploadResume - Old resume filepath from DB:', oldResume_filepath);
+    const oldResume_filepath = await getJobseekerResumePathByUserId(
+      req.user.id
+    );
+    console.log(
+      "Debug: uploadResume - Old resume filepath from DB:",
+      oldResume_filepath
+    );
 
     // Update the jobseeker's resume_filepath in the database
     await updateJobseekerResumePath(req.user.id, newResume_filepath);
-    console.log('Debug: uploadResume - Database updated for user_id:', req.user.id, 'with new path:', newResume_filepath);
+    console.log(
+      "Debug: uploadResume - Database updated for user_id:",
+      req.user.id,
+      "with new path:",
+      newResume_filepath
+    );
 
     // If an old resume existed, delete it from the filesystem after successful database update
     if (oldResume_filepath) {
       const oldFilePath = path.join(__dirname, "..", oldResume_filepath);
-      console.log('Debug: uploadResume - Attempting to delete old file at:', oldFilePath);
+      console.log(
+        "Debug: uploadResume - Attempting to delete old file at:",
+        oldFilePath
+      );
       if (fs.existsSync(oldFilePath)) {
         fs.unlink(oldFilePath, (err) => {
           if (err) console.error("Error deleting old resume file:", err);
-          else console.log('Debug: uploadResume - Successfully deleted old resume file.');
+          else
+            console.log(
+              "Debug: uploadResume - Successfully deleted old resume file."
+            );
         });
       } else {
-        console.log('Debug: uploadResume - Old resume file did not exist at expected path:', oldFilePath);
+        console.log(
+          "Debug: uploadResume - Old resume file did not exist at expected path:",
+          oldFilePath
+        );
       }
     }
 
@@ -125,12 +152,14 @@ const getResume = async (req, res) => {
         error: { code: 404, message: "Resume not found for this jobseeker." },
       });
     }
-
+    const newResume_filepath = `/uploads/resumes/${resumeRelativePath}`;
     // Instead of serving the file, return the URL path
-    res.json({ resumeUrl: resumeRelativePath });
+    res.json({ resumeUrl: newResume_filepath });
   } catch (error) {
     console.error("Error retrieving resume URL:", error);
-    res.status(500).json({ error: { code: 500, message: "Internal server error" } });
+    res
+      .status(500)
+      .json({ error: { code: 500, message: "Internal server error" } });
   }
 };
 
@@ -138,15 +167,17 @@ const getResume = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log(userId, "userId");
     const profileUpdates = req.body;
+    console.log(profileUpdates, "profileUpdated");
 
     const errors = [];
 
     // Input validation (simplified, as dbHelper handles data distribution)
     if (
-      profileUpdates.name !== undefined &&
-      (typeof profileUpdates.name !== "string" ||
-        profileUpdates.name.length > 255)
+      profileUpdates.username !== undefined &&
+      (typeof profileUpdates.username !== "string" ||
+        profileUpdates.username.length > 255)
     ) {
       errors.push("Name must be a string and less than 255 characters.");
     }

@@ -8,7 +8,12 @@ const authorize = require("../middleware/role.middleware");
 const jobseekerAuth = [authenticateJWT, authorize(["jobseeker"])];
 
 router.get("/profile", ...jobseekerAuth, jobseekerController.getProfile);
-router.put("/profile", ...jobseekerAuth, jobseekerController.updateProfile);
+router.patch(
+  "/profile",
+  ...jobseekerAuth,
+  jobseekerController.upload.single("resume"),
+  jobseekerController.updateProfile
+);
 router.post(
   "/profile/resume",
   ...jobseekerAuth,

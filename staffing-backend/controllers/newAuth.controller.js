@@ -535,7 +535,7 @@ const loginPassword = async (req, res) => {
     const jwtToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
 
     res.json({
@@ -549,7 +549,7 @@ const loginPassword = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ DB Update Failed:", updates, err);
+    console.error("❌ DB Update Failed:", err);
     return res.status(500).json({ error: "Failed to update user data." });
   }
 };
@@ -683,7 +683,7 @@ const requestLoginOTP = async (req, res) => {
       remainingBlockSeconds: 0,
     });
   } catch (err) {
-    console.error("❌ DB Update Failed:", updates, err);
+    console.error("❌ DB Update Failed:", err);
     return res.status(500).json({ error: "Failed to update user data." });
   }
 };
@@ -816,7 +816,7 @@ const resendLoginOTP = async (req, res) => {
       remainingBlockSeconds: 0,
     });
   } catch (err) {
-    console.error("❌ DB Update Failed:", updates, err);
+    console.error("❌ DB Update Failed:", err);
     return res.status(500).json({ error: "Failed to update user data." });
   }
 };
@@ -943,12 +943,12 @@ const verifyOTP = async (req, res) => {
       // Step 4: Generate JWT
       const jwtToken = jwt.sign(
         {
-          id: createdUser.id,
+          id: createdUser.userId,
           email: createdUser.email,
           role: createdUser.role,
         },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "7d" }
       );
 
       // Step 5: Send full user data to client
@@ -959,7 +959,7 @@ const verifyOTP = async (req, res) => {
           email: createdUser.email,
           role: createdUser.role,
           name: createdUser.username,
-          id: createdUser.id,
+          id: createdUser.userId,
         },
       });
     } catch (error) {
@@ -1103,7 +1103,7 @@ const loginOtpVerify = async (req, res) => {
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "7d" }
       );
 
       return res.json({
