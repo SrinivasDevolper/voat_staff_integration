@@ -152,9 +152,10 @@ const getResume = async (req, res) => {
         error: { code: 404, message: "Resume not found for this jobseeker." },
       });
     }
-    const newResume_filepath = `/uploads/resumes/${resumeRelativePath}`;
+    // Remove the extra prefixing, resumeRelativePath already contains the full path
+    // const newResume_filepath = `/uploads/resumes/${resumeRelativePath}`;
     // Instead of serving the file, return the URL path
-    res.json({ resumeUrl: newResume_filepath });
+    res.json({ resumeUrl: resumeRelativePath });
   } catch (error) {
     console.error("Error retrieving resume URL:", error);
     res

@@ -21,8 +21,6 @@ router.post("/resend-signup-otp", authController.resendSignupOTP);
 //Resend Resend Login OTP Route
 router.post("/resend-login-otp", authController.resendLoginOTP);
 
-router.post("/login-verify", authController.loginOtpVerify);
-
 // Login with Password Route
 router.post("/login-password", authController.loginPassword);
 
