@@ -42,7 +42,7 @@ const getProfile = async (req, res) => {
     // console.log('Debug: getProfile - req.user.id at start of function:', req.user.id);
     const profile = await findJobseekerProfileByUserId(req.user.id);
 
-    console.log(profile, "proflie");
+    // console.log(profile, "proflie");
 
     if (!profile) {
       return res.status(404).json({ error: "Jobseeker profile not found." });
@@ -67,53 +67,53 @@ const uploadResume = async (req, res) => {
 
     const newResumeFilename = req.file.filename;
     const newResume_filepath = `/uploads/resumes/${newResumeFilename}`;
-    console.log(
-      "Debug: uploadResume - New resume filename:",
-      newResumeFilename
-    );
-    console.log(
-      "Debug: uploadResume - New resume filepath (relative to root):",
-      newResume_filepath
-    );
+    // console.log(
+    //   "Debug: uploadResume - New resume filename:",
+    //   newResumeFilename
+    // );
+    // console.log(
+    //   "Debug: uploadResume - New resume filepath (relative to root):",
+    //   newResume_filepath
+    // );
 
     // Get the old resume path to delete it if it exists
     const oldResume_filepath = await getJobseekerResumePathByUserId(
       req.user.id
     );
-    console.log(
-      "Debug: uploadResume - Old resume filepath from DB:",
-      oldResume_filepath
-    );
+    // console.log(
+    //   "Debug: uploadResume - Old resume filepath from DB:",
+    //   oldResume_filepath
+    // );
 
     // Update the jobseeker's resume_filepath in the database
     await updateJobseekerResumePath(req.user.id, newResume_filepath);
-    console.log(
-      "Debug: uploadResume - Database updated for user_id:",
-      req.user.id,
-      "with new path:",
-      newResume_filepath
-    );
+    // console.log(
+    //   "Debug: uploadResume - Database updated for user_id:",
+    //   req.user.id,
+    //   "with new path:",
+    //   newResume_filepath
+    // );
 
     // If an old resume existed, delete it from the filesystem after successful database update
     if (oldResume_filepath) {
       const oldFilePath = path.join(__dirname, "..", oldResume_filepath);
-      console.log(
-        "Debug: uploadResume - Attempting to delete old file at:",
-        oldFilePath
-      );
+      // console.log(
+      //   "Debug: uploadResume - Attempting to delete old file at:",
+      //   oldFilePath
+      // );
       if (fs.existsSync(oldFilePath)) {
         fs.unlink(oldFilePath, (err) => {
           if (err) console.error("Error deleting old resume file:", err);
-          else
-            console.log(
-              "Debug: uploadResume - Successfully deleted old resume file."
-            );
+          // else
+            // console.log(
+            //   "Debug: uploadResume - Successfully deleted old resume file."
+            // );
         });
       } else {
-        console.log(
-          "Debug: uploadResume - Old resume file did not exist at expected path:",
-          oldFilePath
-        );
+        // console.log(
+        //   "Debug: uploadResume - Old resume file did not exist at expected path:",
+        //   oldFilePath
+        // );
       }
     }
 
@@ -138,16 +138,16 @@ const getResume = async (req, res) => {
     const resumeRelativePath = await getJobseekerResumePathByUserId(
       req.user.id
     );
-    console.log(
-      "Debug: getResume - Retrieved resumeRelativePath from DB:",
-      resumeRelativePath
-    );
+    // console.log(
+    //   "Debug: getResume - Retrieved resumeRelativePath from DB:",
+    //   resumeRelativePath
+    // );
 
     if (!resumeRelativePath) {
-      console.log(
-        "Debug: getResume - No resumeRelativePath found for user_id:",
-        req.user.id
-      );
+      // console.log(
+      //   "Debug: getResume - No resumeRelativePath found for user_id:",
+      //   req.user.id
+      // );
       return res.status(404).json({
         error: { code: 404, message: "Resume not found for this jobseeker." },
       });
@@ -168,9 +168,9 @@ const getResume = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log(userId, "userId");
+    // console.log(userId, "userId");
     const profileUpdates = req.body;
-    console.log(profileUpdates, "profileUpdated");
+    // console.log(profileUpdates, "profileUpdated");
 
     const errors = [];
 
@@ -597,6 +597,7 @@ const getNotifications = async (req, res) => {
   try {
     const { date, readStatus, type } = req.query;
     const userId = req.user.id;
+    console.log("Debug: jobseeker.controller - getNotifications - userId:", userId); // Added for debugging
 
     // Validate date parameter if provided
     if (date && !validator.isISO8601(date)) {
@@ -636,6 +637,7 @@ const getNotifications = async (req, res) => {
     // Get unread count separately using the helper function
     const unreadCount = await countUnreadNotifications(userId);
 
+    console.log("Debug: jobseeker.controller - Notifications before sending:", { notifications, unreadCount }); // Added for debugging
     res.json({ notifications: notifications, unreadCount: unreadCount });
   } catch (error) {
     console.error("Error fetching notifications:", error);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, User } from "lucide-react";
+import axios from 'axios';
 
 export default function HRSchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -10,64 +11,7 @@ export default function HRSchedulePage() {
   const [filteredInterviews, setFilteredInterviews] = useState([]);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
   const [activeTab, setActiveTab] = useState('calendar');
-
-  // Sample interview data with time slots and interviewers
-  const upcomingInterviews = [
-    { 
-      id: 1,
-      date: new Date(2025, 3, 3),
-      title: "Technical Interview - Infosys",
-      slot: "10:00 AM - 11:00 AM",
-      Candidate: "Rajesh Kumar (Tech Lead)",
-      status: "scheduled"
-    },
-    { 
-      id: 2,
-      date: new Date(2025, 3, 7),
-      title: "HR Discussion - TCS",
-      slot: "2:30 PM - 3:00 PM",
-      Candidate: "Priya Sharma (HR Manager)",
-      status: "scheduled"
-    },
-    { 
-      id: 3,
-      date: new Date(2025, 3, 12),
-      title: "Coding Assessment - Amazon",
-      slot: "4:00 PM - 5:30 PM",
-      Candidate: "Amit Patel (Senior Engineer)",
-      status: "pending"
-    },
-    { 
-      id: 4,
-      date: new Date(2025, 3, 15),
-      title: "Final Round - Wipro",
-      slot: "11:30 AM - 12:30 PM",
-      Candidate: "Neha Gupta (Hiring Manager)",
-      status: "pending"
-    },
-    { 
-      id: 5,
-      date: new Date(2025, 3, 18),
-      title: "Technical Screening - Tech Mahindra",
-      slot: "3:00 PM - 4:00 PM",
-      Candidate: "Vikram Singh (Architect)",
-      status: "scheduled"
-    },
-    { 
-      id: 6,
-      date: new Date(2025, 3, 22),
-      title: "Offer Discussion - Accenture",
-      slot: "1:00 PM - 2:00 PM",
-      Candidate: "Ananya Das (HR Business Partner)",
-      status: "scheduled"
-    }
-  ];
-
-  const scheduledDays = upcomingInterviews.map(interview => ({
-    day: interview.date.getDate(),
-    month: interview.date.getMonth(),
-    year: interview.date.getFullYear()
-  }));
+  const [hrScheduleData, setHrScheduleData] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -76,6 +20,39 @@ export default function HRSchedulePage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    const fetchHrSchedule = async () => {
+      try {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const startDate = new Date(year, month, 1).toISOString();
+        const endDate = new Date(year, month + 1, 0).toISOString();
+
+        const token = localStorage.getItem("tempToken") || localStorage.getItem("token");
+        if (!token) {
+          console.error("Authentication token not found.");
+          setHrScheduleData([]);
+          return;
+        }
+
+        const response = await axios.get(
+          `/api/hr/schedule?startDate=${startDate}&endDate=${endDate}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setHrScheduleData(response.data);
+      } catch (error) {
+        console.error("Error fetching HR schedule:", error);
+        setHrScheduleData([]);
+      }
+    };
+
+    fetchHrSchedule();
+  }, [currentDate]);
 
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
@@ -88,9 +65,14 @@ export default function HRSchedulePage() {
 
   const calendarDays = generateCalendarDays();
 
-  const hasScheduledInterview = (day) => day && scheduledDays.some(
-    d => d.day === day && d.month === currentMonth && d.year === currentYear
-  );
+  const hasScheduledInterview = (day) =>
+    day &&
+    hrScheduleData.some(
+      (s) =>
+        new Date(s.interview_date).getDate() === day &&
+        new Date(s.interview_date).getMonth() === currentMonth &&
+        new Date(s.interview_date).getFullYear() === currentYear
+    );
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -112,11 +94,10 @@ export default function HRSchedulePage() {
     const selected = new Date(currentYear, currentMonth, day);
     setSelectedDate(selected);
     setFilteredInterviews(
-      upcomingInterviews.filter(interview =>
-        interview.date &&
-        interview.date.getDate() === day &&
-        interview.date.getMonth() === currentMonth &&
-        interview.date.getFullYear() === currentYear
+      hrScheduleData.filter(interview =>
+        new Date(interview.interview_date).getDate() === day &&
+        new Date(interview.interview_date).getMonth() === currentMonth &&
+        new Date(interview.interview_date).getFullYear() === currentYear
       )
     );
     if (isMobileView) setActiveTab('interviews');
@@ -198,22 +179,49 @@ export default function HRSchedulePage() {
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4">
-              <div className="flex items-center">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-[#0F52BA] rounded mr-1 sm:mr-2"></div>
-                <span className="text-xs sm:text-sm text-gray-600">Scheduled</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-100 rounded mr-1 sm:mr-2"></div>
-                <span className="text-xs sm:text-sm text-gray-600">Available</span>
-              </div>
-              {selectedDate && (
-                <button
-                  onClick={clearDateFilter}
-                  className="ml-auto text-xs sm:text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Clear filter
-                </button>
+            <div className="space-y-2 sm:space-y-3 md:space-y-4 max-h-[175px] overflow-y-auto">
+              {selectedDate && filteredInterviews.length > 0 ? (
+                filteredInterviews.map((interview) => (
+                  <div
+                    key={interview.id}
+                    className="p-3 rounded-lg shadow-sm bg-white border border-gray-200"
+                  >
+                    <p className="font-semibold text-sm md:text-base text-gray-800">
+                      {interview.title}
+                    </p>
+                    <p className="text-xs md:text-sm text-gray-600 mt-1 flex items-center">
+                      <Clock size={14} className="mr-1" /> {interview.interview_time}
+                    </p>
+                    <p className="text-xs md:text-sm text-gray-600 mt-1 flex items-center">
+                      <User size={14} className="mr-1" /> Candidate: {interview.jobseeker_name} ({interview.job_title})
+                    </p>
+                    <p className="text-xs md:text-sm text-gray-600 mt-1">
+                      Location: {interview.interview_location}
+                    </p>
+                    {interview.notes && (
+                      <p className="text-xs md:text-sm text-gray-600 mt-1">
+                        Notes: {interview.notes}
+                      </p>
+                    )}
+                    <span
+                      className={`mt-2 inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
+                        interview.status === "scheduled"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {interview.status}
+                    </span>
+                  </div>
+                ))
+              ) : selectedDate ? (
+                <p className="text-center text-gray-500 py-4">
+                  No interviews scheduled for {formatDateDisplay(selectedDate)}.
+                </p>
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  Select a date to view interviews.
+                </p>
               )}
             </div>
           </div>
@@ -235,9 +243,9 @@ export default function HRSchedulePage() {
             </div>
 
             <div className="space-y-2 sm:space-y-3 md:space-y-4 max-h-[450px] overflow-y-auto">
-              {(selectedDate ? filteredInterviews : upcomingInterviews).length > 0 ? (
+              {(selectedDate ? filteredInterviews : hrScheduleData).length > 0 ? (
                 <>
-                  {(selectedDate ? filteredInterviews : upcomingInterviews).map(interview => (
+                  {(selectedDate ? filteredInterviews : hrScheduleData).map(interview => (
                     <div
                       key={interview.id}
                       className={`p-3 sm:p-4 rounded-lg ${interview.status === 'completed' ? 'bg-gray-50' : 'bg-blue-50 border border-blue-200'}`}
@@ -247,15 +255,15 @@ export default function HRSchedulePage() {
                       </h4>
                       <div className="flex items-center mt-2 text-xs sm:text-sm text-gray-600">
                         <Clock className="mr-2" size={14} />
-                        <span>{interview.slot}</span>
+                        <span>{interview.interview_time}</span>
                       </div>
                       <div className="flex items-center mt-1 text-xs sm:text-sm text-gray-600">
                         <User className="mr-2" size={14} />
-                        <span>{interview.Candidate}</span>
+                        <span>{interview.jobseeker_name} ({interview.job_title})</span>
                       </div>
-                      {interview.date && (
+                      {interview.interview_date && (
                         <p className="text-xs text-gray-500 mt-2">
-                          {formatDateDisplay(interview.date)}
+                          {formatDateDisplay(interview.interview_date)}
                         </p>
                       )}
                     </div>

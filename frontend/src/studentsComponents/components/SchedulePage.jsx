@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNotifications } from "../contexts/NotificationContext";
 import Header from "./header/Header";
+import axios from "axios";
+import Cookies from 'js-cookie';
 
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -14,20 +16,7 @@ export default function SchedulePage() {
   const [filteredNotifications, setFilteredNotifications] = useState([]);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
   const [activeTab, setActiveTab] = useState("calendar");
-
-  const scheduledDays = [
-    { day: 3, month: 3, year: 2025 },
-    { day: 7, month: 3, year: 2025 },
-    { day: 12, month: 3, year: 2025 },
-    { day: 15, month: 3, year: 2025 },
-    { day: 18, month: 3, year: 2025 },
-    { day: 22, month: 3, year: 2025 },
-    { day: 25, month: 3, year: 2025 },
-    { day: 29, month: 3, year: 2025 },
-    { day: 5, month: 4, year: 2025 },
-    { day: 10, month: 4, year: 2025 },
-    { day: 15, month: 4, year: 2025 },
-  ];
+  const [scheduleData, setScheduleData] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -36,6 +25,43 @@ export default function SchedulePage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      try {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const startDate = new Date(year, month, 1).toISOString();
+        const endDate = new Date(year, month + 1, 0).toISOString();
+
+        const token = Cookies.get("jwtToken");
+        if (!token) {
+          console.error("Authentication token not found.");
+          setScheduleData([]);
+          return;
+        }
+
+        console.log("Debug: SchedulePage - JWT token used:", token);
+
+        const response = await axios.get(
+          `/api/jobseeker/schedule?startDate=${startDate}&endDate=${endDate}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log("Debug: SchedulePage - Full API response data:", response.data);
+        console.log("Debug: SchedulePage - response.data.schedule:", response.data.schedule);
+        setScheduleData(response.data.schedule);
+      } catch (error) {
+        console.error("Error fetching schedule:", error);
+        setScheduleData([]);
+      }
+    };
+
+    fetchSchedule();
+  }, [currentDate]);
 
   const getDaysInMonth = (year, month) =>
     new Date(year, month + 1, 0).getDate();
@@ -52,11 +78,17 @@ export default function SchedulePage() {
 
   const calendarDays = generateCalendarDays();
 
-  const hasScheduledInterview = (day) =>
-    day &&
-    scheduledDays.some(
-      (d) => d.day === day && d.month === currentMonth && d.year === currentYear
+  const hasScheduledInterview = (day) => {
+    console.log("Debug: hasScheduledInterview - scheduleData value at call time:", scheduleData);
+    return day &&
+    scheduleData.some(
+      (s) =>
+        s.date &&
+        new Date(s.date).getDate() === day &&
+        new Date(s.date).getMonth() === currentMonth &&
+        new Date(s.date).getFullYear() === currentYear
     );
+  };
 
   const monthNames = [
     "January",
@@ -87,13 +119,16 @@ export default function SchedulePage() {
     if (!day) return;
     const selected = new Date(currentYear, currentMonth, day);
     setSelectedDate(selected);
+    console.log("Debug: filterNotificationsByDate - selected date:", selected);
     setFilteredNotifications(
       notifications.filter(
-        (n) =>
-          n.date &&
-          n.date.getDate() === day &&
-          n.date.getMonth() === currentMonth &&
-          n.date.getFullYear() === currentYear
+        (n) => {
+          console.log("Debug: filterNotificationsByDate - notification date (n.date):");
+          return n.date &&
+          n.date.getDate() === selected.getDate() &&
+          n.date.getMonth() === selected.getMonth() &&
+          n.date.getFullYear() === selected.getFullYear()
+        }
       )
     );
     if (isMobileView) setActiveTab("notifications");
@@ -198,7 +233,7 @@ export default function SchedulePage() {
                     }`}
                     onClick={() => filterNotificationsByDate(day)}
                   >
-                    {day || ""}
+                    {day}
                   </div>
                 ))}
               </div>
@@ -245,7 +280,7 @@ export default function SchedulePage() {
                       {formatDateDisplay(selectedDate)}
                     </span>
                   )}
-                  {notifications.some((n) => !n.read) && (
+                  {notifications.some((n) => !n.isRead) && (
                     <button
                       onClick={handleMarkAllAsRead}
                       className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap"
@@ -257,8 +292,6 @@ export default function SchedulePage() {
               </div>
 
               <div className="space-y-2 sm:space-y-3 md:space-y-4 max-h-[575px] overflow-y-auto">
-                {" "}
-                {/* Added max-height and overflow */}
                 {(selectedDate ? filteredNotifications : notifications).length >
                 0 ? (
                   <>
@@ -267,7 +300,7 @@ export default function SchedulePage() {
                         <div
                           key={notification.id}
                           className={`p-3 sm:p-4 rounded-lg ${
-                            notification.read
+                            notification.isRead
                               ? "bg-gray-50"
                               : "bg-blue-50 border border-blue-200"
                           }`}
@@ -275,12 +308,15 @@ export default function SchedulePage() {
                         >
                           <p
                             className={`${
-                              notification.read
+                              notification.isRead
                                 ? "text-gray-600"
                                 : "text-gray-800 font-medium"
                             } text-xs sm:text-sm md:text-base`}
                           >
-                            {notification.text}
+                            {notification.title}
+                          </p>
+                          <p className="text-xs md:text-sm mt-1">
+                            {notification.message}
                           </p>
                           {notification.date && (
                             <p className="text-xs text-gray-500 mt-1">

@@ -139,14 +139,14 @@ export default function JobBoard() {
 
               <div className="transition-opacity duration-300 group-hover:opacity-90">
                 <div className="flex justify-between items-center mb-2">
-                  <motion.p 
+                  <motion.div 
                     className="text-sm text-gray-400 flex items-center gap-1"
                     whileHover={{ x: 2 }}
                     transition={{ duration: 0.2 }}
                   >
                     <Clock size={12} />
                     {job.posted}
-                  </motion.p>
+                  </motion.div>
                   <motion.div 
                     className="bg-blue-100 text-blue-600 text-xs font-semibold px-3 py-1 rounded-full"
                     whileHover={{ scale: 1.02 }}
@@ -179,7 +179,7 @@ export default function JobBoard() {
                 </motion.p>
 
                 <div className="text-sm text-gray-700 space-y-1 mt-2">
-                  <motion.p 
+                  <motion.div 
                     className="flex items-center gap-2"
                     whileHover={{ x: 2 }}
                     transition={{ duration: 0.2 }}
@@ -191,8 +191,8 @@ export default function JobBoard() {
                       <MapPin size={16} className="text-blue-500" />
                     </motion.div>
                     <span>{job.location}</span>
-                  </motion.p>
-                  <motion.p 
+                  </motion.div>
+                  <motion.div 
                     className="flex items-center gap-2"
                     whileHover={{ x: 2 }}
                     transition={{ duration: 0.2 }}
@@ -204,7 +204,7 @@ export default function JobBoard() {
                       <Brain size={16} className="text-blue-500" />
                     </motion.div>
                     <span>{job.experience}</span>
-                  </motion.p>
+                  </motion.div>
                 </div>
 
                 {/* Skills Tags */}

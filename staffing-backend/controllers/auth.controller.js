@@ -248,56 +248,43 @@ const loginPassword = async (req, res) => {
     return res.status(400).json({ error: "Account not verified" });
 
   if (!(await bcrypt.compare(password, user.password))) {
-    let updates = {};
-    const newLoginAttempts = (user.loginAttempts || 0) + 1;
-    updates.loginAttempts = newLoginAttempts;
-    updates.lastFailedLoginAttempt = now;
+    // Increment attempts and handle lockout
+    const newAttempts = (user.passwordAttempts || 0) + 1;
+    let updates = { passwordAttempts: newAttempts };
+    let remainingBlockSeconds = 0;
 
-    let errorMessage = "Incorrect password.";
-    let attemptsLeft = GLOBAL_LOGIN_ATTEMPTS_LIMIT - newLoginAttempts;
-
-    if (newLoginAttempts >= GLOBAL_LOGIN_ATTEMPTS_LIMIT) {
-      updates.lockoutExpires = now + ACCOUNT_BLOCK_DURATION;
-      const blockDurationMinutes = Math.ceil(
-        ACCOUNT_BLOCK_DURATION / (60 * 1000)
-      );
-      errorMessage = `Account temporarily blocked due to too many incorrect password attempts (${GLOBAL_LOGIN_ATTEMPTS_LIMIT} failed attempts). Please try again in ${blockDurationMinutes} minute(s).`;
-      attemptsLeft = 0; // No attempts left
-    } else {
-      errorMessage += ` ${attemptsLeft} attempts left.`;
+    if (newAttempts >= GLOBAL_LOGIN_ATTEMPTS_LIMIT) {
+      const lockoutTime = now + ACCOUNT_BLOCK_DURATION;
+      updates.lockoutExpires = lockoutTime;
+      updates.passwordAttempts = 0; // Reset attempts after blocking
+      remainingBlockSeconds = Math.ceil(ACCOUNT_BLOCK_DURATION / 1000);
     }
-
     await updateUser(user.id, updates);
-    return res
-      .status(400)
-      .json({ error: errorMessage, attemptsLeft: attemptsLeft });
+    return res.status(400).json({
+      error: "Invalid credentials",
+      attemptsLeft: GLOBAL_LOGIN_ATTEMPTS_LIMIT - newAttempts,
+      remainingBlockSeconds: remainingBlockSeconds,
+    });
+  }
+  // Reset attempts on successful login
+  if (user.passwordAttempts > 0) {
+    await updateUser(user.id, { passwordAttempts: 0 });
   }
 
-  // Successful password login - reset all login-related counters
-  await updateUser(user.id, {
-    loginAttempts: 0,
-    otp: null,
-    otpExpires: null,
-    otpAttempts: 0,
-    lastFailedLoginAttempt: null,
-    lockoutExpires: null,
-    lastOtpSent: null,
-  });
-
-  const jwtToken = jwt.sign(
+  const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "7d" } // Set JWT expiry to 7 days
   );
 
   res.json({
-    message: "Logged in Successfully",
-    token: jwtToken,
+    message: "Login successful",
+    token,
     data: {
+      id: user.id,
+      name: user.name,
       email: user.email,
       role: user.role,
-      name: user.username,
-      id: user.id,
     },
   });
 };
@@ -307,300 +294,181 @@ const requestLoginOTP = async (req, res) => {
   const { email } = req.body;
 
   if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: "Invalid email" });
+    return res.status(400).json({ error: "Invalid email address." });
   }
-
-  const user = await findUserByEmail(email);
-
-  if (!user) return res.status(400).json({ error: "Account not found" });
-
-  const now = Date.now();
-  const OTP_COOLDOWN = 30 * 1000; // 30 seconds
-  const ACCOUNT_BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
-
-  if (user.lockoutExpires && user.lockoutExpires > now) {
-    const remainingMillis = user.lockoutExpires - now;
-    const remainingMinutes = Math.ceil(remainingMillis / (60 * 1000));
-    return res
-      .status(429)
-      .json({
-        error: `Account temporarily blocked due to too many OTP requests. Please try again in ${remainingMinutes} minute(s).`,
-      });
-  }
-
-  if (!user.verified)
-    return res.status(400).json({ error: "Account not verified" });
-
-  if (user.lastOtpSent && now - user.lastOtpSent < OTP_COOLDOWN) {
-    const remainingSeconds = Math.ceil(
-      (OTP_COOLDOWN - (now - user.lastOtpSent)) / 1000
-    );
-    return res
-      .status(429)
-      .json({
-        error: `Please wait ${remainingSeconds} second(s) before requesting another OTP.`,
-      });
-  }
-
-  // Clear existing OTP attempts if a new request comes after cooldown and no current lockout
-  if (user.otpAttempts > 0 || user.loginAttempts > 0) {
-    await updateUser(user.id, {
-      otpAttempts: 0,
-      loginAttempts: 0,
-      lastFailedLoginAttempt: null,
-    });
-  }
-
-  const otp = generateOTP();
-  const otpExpires = now + 5 * 60 * 1000;
 
   try {
-    await updateUser(user.id, {
-      otp: otp,
-      otpExpires: otpExpires,
-      lastOtpSent: now,
-    });
-    console.log(
-      `Debug: requestLoginOTP - User ID: ${
-        user.id
-      }, OTP set: ${otp}, OTP Expires: ${new Date(
-        otpExpires
-      ).toLocaleString()}, Current Time: ${new Date(now).toLocaleString()}`
-    );
-    await sendOTP(email, otp);
-    res.json({ message: "OTP sent", expires: otpExpires });
-  } catch (error) {
-    console.error("OTP Send Error:", error);
-    // If sending fails, clear the OTP data and mark last sent for cooldown but don't block
-    await updateUser(user.id, {
-      otp: null,
-      otpExpires: null,
-      lastOtpSent: now,
-    });
-    res.status(500).json({ error: "Failed to send OTP" });
-  }
-};
-
-// Verify OTP Controller (Signup & Login)
-const verifyOTP = async (req, res) => {
-  const { email, otp, tempToken, type } = req.body;
-
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: "Invalid email" });
-  }
-
-  if (!otp || otp.length !== 6) {
-    return res.status(400).json({ error: "Invalid OTP" });
-  }
-
-  if (type === "signup") {
-    // Verify signup OTP
-    if (!tempToken) {
-      return res.status(400).json({ error: "Invalid or missing token" });
-    }
-
-    const pendingSignup = await findPendingSignupByToken(tempToken);
-
-    if (!pendingSignup || pendingSignup.email !== email) {
-      return res
-        .status(400)
-        .json({ error: "Invalid or expired token, or email mismatch" });
-    }
-
-    const now = Date.now();
-    const SIGNUP_OTP_ATTEMPTS_LIMIT = 3;
-    const SIGNUP_BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
-
-    if (pendingSignup.blockExpires && pendingSignup.blockExpires > now) {
-      const remainingMillis = pendingSignup.blockExpires - now;
-      const remainingMinutes = Math.ceil(remainingMillis / (60 * 1000));
-      return res
-        .status(429)
-        .json({
-          error: `Account temporarily blocked due to too many signup attempts. Please try again in ${remainingMinutes} minute(s).`,
-        });
-    }
-
-    if (pendingSignup.otpExpires < now) {
-      await deletePendingSignup(pendingSignup.id);
-      return res.status(400).json({ error: "OTP expired" });
-    }
-
-    if (pendingSignup.otpCode !== otp) {
-      const newAttempts = (pendingSignup.otpAttempts || 0) + 1;
-      let updates = { otpAttempts: newAttempts };
-      let errorMessage = "Incorrect OTP.";
-      let attemptsLeft = SIGNUP_OTP_ATTEMPTS_LIMIT - newAttempts;
-
-      if (newAttempts >= SIGNUP_OTP_ATTEMPTS_LIMIT) {
-        updates.blockExpires = now + SIGNUP_BLOCK_DURATION;
-        const blockDurationMinutes = Math.ceil(
-          SIGNUP_BLOCK_DURATION / (60 * 1000)
-        );
-        errorMessage = `Account temporarily blocked due to too many incorrect OTP attempts (${SIGNUP_OTP_ATTEMPTS_LIMIT} failed attempts). Please try again in ${blockDurationMinutes} minute(s).`;
-        attemptsLeft = 0; // No attempts left
-      } else {
-        errorMessage += ` ${attemptsLeft} attempts left.`;
-      }
-
-      await updatePendingSignup(pendingSignup.id, updates);
-      return res
-        .status(400)
-        .json({ error: errorMessage, attemptsLeft: attemptsLeft });
-    }
-
-    // OTP correct - add user to permanent store
-    try {
-      // Generate VOAT ID
-      let nextVoatIdSuffix = await findMaxVoatIdSuffix();
-      nextVoatIdSuffix += 1;
-      const voatId = `VOAT-${String(nextVoatIdSuffix).padStart(3, "0")}`;
-
-      const createdUserResult = await createUser({
-        username: pendingSignup.name,
-        email: pendingSignup.email,
-        hashedPassword: pendingSignup.hashedPassword,
-        role: pendingSignup.role,
-        voatId: voatId,
-        verified: true,
-        resume_filepath: pendingSignup.resume_filepath,
-      });
-
-      await deletePendingSignup(pendingSignup.id);
-      // Generate JWT token for the newly created user
-      const jwtToken = jwt.sign(
-        {
-          id: createdUserResult.id,
-          email: pendingSignup.email,
-          role: pendingSignup.role,
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      res.json({
-        message: "Signup verified successfully",
-        token: jwtToken,
-        data: {
-          email: pendingSignup.email,
-          role: pendingSignup.role,
-          name: pendingSignup.name,
-          id: createdUserResult.id,
-        },
-      });
-    } catch (error) {
-      console.error(
-        "Error creating user in DB during signup verification:",
-        error
-      );
-      return res
-        .status(500)
-        .json({ error: "Failed to verify OTP and create user" });
-    }
-  } else if (type === "login") {
-    // Verify login OTP
     const user = await findUserByEmail(email);
-    if (!user) return res.status(400).json({ error: "Account not found" });
+
+    if (!user) {
+      // Do not reveal if email exists for security reasons
+      return res.json({
+        message:
+          "If an account with that email exists, an OTP has been sent.",
+      });
+    }
 
     const now = Date.now();
-    console.log(
-      `Debug: verifyOTP (login) - User ID: ${user.id}, Stored OTP: ${
-        user.otp
-      }, Stored OTP Expires: ${new Date(
-        user.otpExpires
-      ).toLocaleString()}, Current Time: ${new Date(now).toLocaleString()}`
-    );
-    const GLOBAL_LOGIN_ATTEMPTS_LIMIT = 5;
-    const OTP_LOGIN_ATTEMPTS_LIMIT = 3;
-    const ACCOUNT_BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
+    const OTP_COOLDOWN = 30 * 1000; // 30 seconds
+    const MAX_OTP_REQUEST_ATTEMPTS = 5; // Max OTP requests per short period
+    const BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes block
 
     if (user.lockoutExpires && user.lockoutExpires > now) {
       const remainingMillis = user.lockoutExpires - now;
-      const remainingMinutes = Math.ceil(remainingMillis / (60 * 1000));
-      return res
-        .status(429)
-        .json({
-          error: `Account temporarily blocked due to too many login attempts. Please try again in ${remainingMinutes} minute(s).`,
-        });
+      const remainingSeconds = Math.ceil(remainingMillis / 1000);
+      return res.status(429).json({
+        error: `Too many login attempts. Account temporarily blocked. Please try again in ${Math.ceil(
+          remainingSeconds / 60
+        )} minute(s).`,
+        remainingBlockSeconds: remainingSeconds,
+      });
     }
 
-    if (!user.verified)
-      return res.status(400).json({ error: "Account not verified" });
-
-    if (!user.otp || user.otpExpires < now) {
-      // This means OTP is expired or not found, but it should have been handled by requestLoginOTP's cooldown.
-      // If it still happens here, it means OTP expired during entry, or an invalid OTP was provided without being in cooldown.
-      return res
-        .status(400)
-        .json({ error: "OTP expired or not found. Please request a new one." });
+    if (user.lastOtpSent && now - user.lastOtpSent < OTP_COOLDOWN) {
+      const remainingSeconds = Math.ceil(
+        (OTP_COOLDOWN - (now - user.lastOtpSent)) / 1000
+      );
+      return res.status(429).json({
+        error: `Please wait ${remainingSeconds} second(s) before requesting another OTP.`,
+        retryIn: remainingSeconds,
+      });
     }
 
-    if (user.otp !== otp) {
-      let updates = {};
-      let errorMessage = "Incorrect OTP.";
+    const newOtpAttempts = (user.otpAttempts || 0) + 1;
+    let updates = { lastOtpSent: now, otpAttempts: newOtpAttempts };
 
-      // Increment OTP-specific attempts
-      const newOtpAttempts = (user.otpAttempts || 0) + 1;
-      updates.otpAttempts = newOtpAttempts;
-
-      // Increment overall login attempts
-      const newLoginAttempts = (user.loginAttempts || 0) + 1;
-      updates.loginAttempts = newLoginAttempts;
-      updates.lastFailedLoginAttempt = now; // Record time of failure
-
-      let otpAttemptsLeft = OTP_LOGIN_ATTEMPTS_LIMIT - newOtpAttempts;
-      let totalAttemptsLeft = GLOBAL_LOGIN_ATTEMPTS_LIMIT - newLoginAttempts;
-
-      if (newOtpAttempts >= OTP_LOGIN_ATTEMPTS_LIMIT) {
-        errorMessage = `Account temporarily blocked due to too many incorrect OTP attempts (${OTP_LOGIN_ATTEMPTS_LIMIT} failed attempts).`;
-        updates.lockoutExpires = now + ACCOUNT_BLOCK_DURATION; // Block account
-        otpAttemptsLeft = 0;
-      }
-      if (newLoginAttempts >= GLOBAL_LOGIN_ATTEMPTS_LIMIT) {
-        errorMessage = `Account temporarily blocked due to too many overall login attempts (${GLOBAL_LOGIN_ATTEMPTS_LIMIT} failed attempts).`;
-        updates.lockoutExpires = now + ACCOUNT_BLOCK_DURATION; // Block account
-        totalAttemptsLeft = 0;
-      }
-      if (newOtpAttempts < OTP_LOGIN_ATTEMPTS_LIMIT) {
-        errorMessage += ` ${otpAttemptsLeft} OTP attempts left.`;
-      }
-      if (newLoginAttempts < GLOBAL_LOGIN_ATTEMPTS_LIMIT) {
-        errorMessage += ` ${totalAttemptsLeft} total login attempts left.`;
-      }
-
+    if (newOtpAttempts > MAX_OTP_REQUEST_ATTEMPTS) {
+      updates.lockoutExpires = now + BLOCK_DURATION;
+      updates.otpAttempts = 0; // Reset after blocking
+      const remainingSeconds = Math.ceil(BLOCK_DURATION / 1000);
       await updateUser(user.id, updates);
-      return res
-        .status(400)
-        .json({ error: errorMessage, otpAttemptsLeft, totalAttemptsLeft });
+      return res.status(429).json({
+        error: `Too many OTP requests. Account temporarily blocked. Please try again in ${Math.ceil(
+          remainingSeconds / 60
+        )} minute(s).`,
+        remainingBlockSeconds: remainingSeconds,
+      });
     }
 
-    // Successful OTP verification - reset all login-related counters
+    const otp = generateOTP();
+    updates.otpCode = otp;
+    updates.otpExpires = now + 5 * 60 * 1000; // OTP valid for 5 minutes
+    await updateUser(user.id, updates);
+    await sendOTP(email, otp);
+
+    res.json({
+      message: "OTP sent to your email.",
+      otpExpiresIn: 300, // 5 minutes in seconds
+      otpAttemptsLeft: MAX_OTP_REQUEST_ATTEMPTS - newOtpAttempts,
+    });
+  } catch (error) {
+    console.error("Error requesting OTP:", error);
+    res.status(500).json({ error: "Failed to send OTP." });
+  }
+};
+
+// Verify OTP Controller
+const verifyOTP = async (req, res) => {
+  const { email, otp, type } = req.body;
+
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({ error: "Invalid email address." });
+  }
+  if (!otp || otp.length !== 6) {
+    return res.status(400).json({ error: "Invalid OTP format." });
+  }
+
+  try {
+    const user = await findUserByEmail(email);
+
+    if (!user) {
+      return res.status(400).json({ error: "Account not found." });
+    }
+
+    const now = Date.now();
+    const MAX_OTP_VERIFY_ATTEMPTS = 3;
+    const VERIFY_BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    if (user.lockoutExpires && user.lockoutExpires > now) {
+      const remainingMillis = user.lockoutExpires - now;
+      const remainingSeconds = Math.ceil(remainingMillis / 1000);
+      return res.status(429).json({
+        error: `Account temporarily blocked due to too many failed OTP verification attempts. Please try again in ${Math.ceil(
+          remainingSeconds / 60
+        )} minute(s).`,
+        remainingBlockSeconds: remainingSeconds,
+      });
+    }
+
+    if (user.otpCode !== otp) {
+      const newVerifyAttempts = (user.otpVerifyAttempts || 0) + 1;
+      let updates = { otpVerifyAttempts: newVerifyAttempts };
+      let remainingBlockSeconds = 0;
+
+      if (newVerifyAttempts >= MAX_OTP_VERIFY_ATTEMPTS) {
+        const lockoutTime = now + VERIFY_BLOCK_DURATION;
+        updates.lockoutExpires = lockoutTime;
+        updates.otpVerifyAttempts = 0; // Reset attempts after blocking
+        remainingBlockSeconds = Math.ceil(VERIFY_BLOCK_DURATION / 1000);
+      }
+      await updateUser(user.id, updates);
+      return res.status(400).json({
+        error: "Invalid OTP.",
+        otpVerifyAttemptsLeft: MAX_OTP_VERIFY_ATTEMPTS - newVerifyAttempts,
+        remainingBlockSeconds: remainingBlockSeconds,
+      });
+    }
+
+    // OTP matched, now check expiry
+    if (user.otpExpires < now) {
+      await updateUser(user.id, {
+        otpCode: null,
+        otpExpires: null,
+        otpVerifyAttempts: 0,
+      }); // Clear expired OTP
+      return res.status(400).json({ error: "OTP expired." });
+    }
+
+    // OTP is valid and not expired
+    // Clear OTP and reset attempts
     await updateUser(user.id, {
-      loginAttempts: 0,
-      otp: null,
+      otpCode: null,
       otpExpires: null,
-      otpAttempts: 0,
-      lastFailedLoginAttempt: null,
-      lockoutExpires: null,
-      lastOtpSent: now,
+      otpVerifyAttempts: 0,
+      passwordAttempts: 0, // Also reset password attempts on successful OTP login
+      lockoutExpires: null, // Clear any existing lockout
     });
 
-    const jwtToken = jwt.sign(
-      { id: user.id, email: user.email, role: user.role }, // Include user ID in token
+    // For signup verification, mark user as verified
+    if (type === "signup" && !user.verified) {
+      await updateUser(user.id, { verified: true });
+      // After successful signup verification, delete pending signup record
+      const pendingSignup = await findPendingSignupByEmail(email);
+      if (pendingSignup) {
+        await deletePendingSignup(pendingSignup.id);
+      }
+    }
+
+    // Generate and send JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "7d" } // Token expires in 7 days
     );
 
     res.json({
-      message: "Logged in Successfully",
-      token: jwtToken,
+      message: "OTP verified successfully",
+      token,
       data: {
+        id: user.id,
+        name: user.name,
         email: user.email,
         role: user.role,
-        name: user.username,
-        id: user.id,
-      }, // Include user ID in data
+      },
     });
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    res.status(500).json({ error: "Internal server error." });
   }
 };
 

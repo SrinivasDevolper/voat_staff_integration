@@ -7,6 +7,7 @@ import {
   useEffect 
 } from 'react';
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 const NotificationContext = createContext();
 
@@ -15,11 +16,25 @@ export const NotificationProvider = ({ children }) => {
   
   const fetchNotifications = useCallback(async () => {
     try {
-      const response = await axios.get('/api/jobseeker/notifications', { withCredentials: true });
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found for notifications.");
+        setNotifications([]);
+        return;
+      }
+      const response = await axios.get('/api/jobseeker/notifications', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true
+      });
+      console.log("Debug: NotificationContext - Full response:", response);
+      console.log("Debug: NotificationContext - response.data:", response.data);
       const fetchedNotifications = response.data.notifications.map(n => ({
         id: n.notification_id,
-        text: n.title, // Placeholder, will refine based on user input
-        read: n.is_read === 1,
+        title: n.title, // Map backend title to frontend title
+        message: n.message, // Map backend message to frontend message
+        isRead: n.is_read === 1,
         date: new Date(n.created_at),
         type: n.type
       }));
@@ -35,15 +50,26 @@ export const NotificationProvider = ({ children }) => {
   }, [fetchNotifications]);
 
   const unreadCount = useMemo(
-    () => notifications.filter(n => !n.read).length,
+    () => notifications.filter(n => !n.isRead).length,
     [notifications]
   );
 
   const markAsRead = useCallback(async (id) => {
     try {
-      await axios.put(`/api/jobseeker/notifications/${id}/read`, {}, { withCredentials: true });
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found for marking notification as read.");
+        return;
+      }
+      await axios.put(`/api/jobseeker/notifications/${id}/read`, {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true
+      });
       setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
+        prev.map(n => n.id === id ? { ...n, isRead: true } : n)
       );
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -52,8 +78,19 @@ export const NotificationProvider = ({ children }) => {
 
   const markAllAsRead = useCallback(async () => {
     try {
-      await axios.put('/api/jobseeker/notifications/mark-all-read', {}, { withCredentials: true });
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found for marking all notifications as read.");
+        return;
+      }
+      await axios.put('/api/jobseeker/notifications/mark-all-read', {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
@@ -78,17 +115,18 @@ export const NotificationProvider = ({ children }) => {
       n.date && 
       n.date >= today && 
       n.date <= nextWeek &&
-      !n.read
+      !n.isRead
     );
   }, [notifications]);
 
-  const addNotification = useCallback((text, date, type = "general") => {
+  const addNotification = useCallback((title, message, date, type = "general") => {
     // This function might be less relevant if all notifications come from backend
     // but kept for potential frontend-only notifications or immediate updates
     const newNotification = {
       id: Date.now(),
-      text,
-      read: false,
+      title,
+      message,
+      isRead: false,
       date,
       type
     };
@@ -98,7 +136,18 @@ export const NotificationProvider = ({ children }) => {
   const deleteNotification = useCallback(async (id) => {
     // Implement backend API call for deletion if needed
     try {
-      await axios.delete(`/api/jobseeker/notifications/${id}`, { withCredentials: true });
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found for deleting notification.");
+        return;
+      }
+      await axios.delete(`/api/jobseeker/notifications/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true
+      });
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (error) {
       console.error('Error deleting notification:', error);
