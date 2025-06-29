@@ -169,7 +169,7 @@ export default function OTPLogin() {
     setIsBlocked(false);
 
     try {
-      const res = await axios.post(`${apiUrl}/login-verify`, {
+      const res = await axios.post(`${apiUrl}/verify-otp`, {
         email,
         otp: enteredOtp,
         type: "login",

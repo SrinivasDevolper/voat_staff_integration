@@ -3,6 +3,7 @@ console.log('Backend JWT_SECRET (from auth.middleware):', process.env.JWT_SECRET
 
 // JWT authentication middleware
 const authenticateJWT = (req, res, next) => {
+  console.log('Debug: auth.middleware - JWT_SECRET used for verification:', process.env.JWT_SECRET);
   const authHeader = req.headers.authorization;
   console.log("authHeader", authHeader);
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
