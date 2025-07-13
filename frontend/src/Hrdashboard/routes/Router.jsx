@@ -5,7 +5,7 @@ import { Navigate } from 'react-router-dom';
 
 import App from "../src/App";
 import Layout from "../Layout";
-import Profile from "../pages/hrProfile";
+import Profile from "../hr pages/HrProfile";
 import HRSchedulePage from "../pages/hrSchedule";
 import PostJob from "../pages/PostJob";
 import AllJobs from "../pages/Alljobbs";
@@ -17,6 +17,7 @@ import RejectedStudents from "../hr pages/Rejectedstudent";
 import QuickHire from "../pages/QuickHire";
 import DataRequest from "../pages/DataRequest";
 import GetProfile from "../pages/GetProfile";
+import HrEmailOtp from "../hr pages/HrEmailOtp";
 
 const router = createBrowserRouter([
   {
@@ -88,6 +89,10 @@ const router = createBrowserRouter([
       {
         path: "get-profile",
         element: <GetProfile/>
+      },
+      {
+        path: "verify-email-otp",
+        element: <HrEmailOtp />
       }
     ]
   }

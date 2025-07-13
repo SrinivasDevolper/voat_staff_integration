@@ -2,8 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   User, Briefcase, Mail, Phone, MapPin, Calendar, 
-  Linkedin, ChevronDown, Edit, Save, X, Pencil, Trash2, Clock 
+  Linkedin, ChevronDown, Edit, Save, X, Pencil, Trash2, Clock, Check, Edit2 
 } from "lucide-react";
+import axios from 'axios';
+import { apiUrl } from '../../utilits/apiUrl';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -65,6 +69,11 @@ export default function Profile() {
     Candidate: '',
     date: ''
   });
+
+  const navigate = useNavigate();
+  const [isEmailEditing, setIsEmailEditing] = useState(false);
+  const [emailInput, setEmailInput] = useState(profileDetails.email);
+  const [emailError, setEmailError] = useState('');
 
   // Handle input changes for profile
   const handleInputChange = (e) => {
@@ -185,14 +194,67 @@ export default function Profile() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-sm text-gray-400">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="border rounded p-2 bg-white"
-                    aria-label="Email"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      name="email"
+                      value={isEmailEditing ? emailInput : profileDetails.email}
+                      onChange={e => {
+                        setEmailInput(e.target.value);
+                        setEmailError('');
+                      }}
+                      className={`border rounded p-2 bg-white w-full pr-10 ${isEmailEditing ? '' : 'bg-gray-50'}`}
+                      aria-label="Email"
+                      disabled={!isEmailEditing}
+                    />
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (isEmailEditing) {
+                          // Validate email
+                          const emailChanged = emailInput !== profileDetails.email;
+                          const emailRegex = /^\S+@\S+\.\S+$/;
+                          if (emailChanged && emailRegex.test(emailInput)) {
+                            try {
+                              // MOCK: Simulate API call with setTimeout
+                              setEmailError('');
+                              console.log('Mock send OTP to:', emailInput);
+                              toast.success('Please verify your new email address with the OTP sent to it.');
+                              setTimeout(() => {
+                                setIsEmailEditing(false);
+                                navigate('/hire/verify-email-otp', { state: { email: emailInput } });
+                              }, 1200);
+                            } catch (err) {
+                              setEmailError('Failed to send OTP. Try again.');
+                            }
+                          } else if (emailChanged && !emailRegex.test(emailInput)) {
+                            setEmailError('Email is invalid');
+                          } else {
+                            setIsEmailEditing(false);
+                          }
+                        } else {
+                          setIsEmailEditing(true);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#0F52BA] transition-colors"
+                      disabled={isEmailEditing && !!emailError}
+                    >
+                      {isEmailEditing ? <Check size={16} /> : <Edit2 size={16} />}
+                    </button>
+                  </div>
+                  {emailError && (
+                    <p className="mt-1 text-xs text-red-600">{emailError}</p>
+                  )}
+                  {isEmailEditing && (
+                    <div className="mt-1 flex flex-col items-start">
+                      <div className="w-full h-0.5 bg-red-500 rounded-full mb-1" />
+                      <span className="text-xs text-red-600 font-medium italic">
+                        <span className="text-red-600 font-bold mr-1">*</span>
+                        This field requires OTP verification when changed.
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-sm text-gray-400">Phone</label>

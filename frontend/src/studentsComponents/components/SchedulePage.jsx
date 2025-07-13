@@ -119,7 +119,7 @@ export default function SchedulePage() {
   return (
     <div className="flex">
       <Header />
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-20 max-w-[1800px] mx-auto p-2 h-screen flex flex-col">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-24 max-w-[1800px] mx-auto p-2 h-screen flex flex-col">
         {isMobileView && (
           <div className="flex mb-4 border-b border-gray-200">
             <button
@@ -197,8 +197,18 @@ export default function SchedulePage() {
                         : ""
                     }`}
                     onClick={() => filterNotificationsByDate(day)}
+                    style={{ position: 'relative' }}
                   >
                     {day || ""}
+                    {hasScheduledInterview(day) && (
+                      <span
+                        className="absolute top-1 right-1 w-3 h-3 rounded-full shadow-md"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        <span className="block w-full h-full rounded-full animate-neon-pulse"></span>
+                        <span className="block w-full h-full rounded-full bg-[#39ff14] absolute top-0 left-0 border-2 border-white"></span>
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

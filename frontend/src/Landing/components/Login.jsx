@@ -4,6 +4,7 @@ import { Mail, Eye, EyeOff, Home, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiUrl } from "../../utilits/apiUrl";
+import { useAuth } from "../../contexts/AuthContext";
 import Cookies from "js-cookie";
 
 export default function OTPLogin() {
@@ -34,6 +35,7 @@ export default function OTPLogin() {
 
   const inputRefs = useRef([]);
   const navigate = useNavigate();
+  const { login } = useAuth();
   useEffect(() => {
     const token = Cookies.get("jwtToken");
     const userDetails = Cookies.get("userDetails");
@@ -189,8 +191,7 @@ export default function OTPLogin() {
       } = res.data;
       console.log("res", res);
       // ✅ Success: update hooks and redirect
-      Cookies.set("jwtToken", token, { expires: 7 });
-      Cookies.set("userDetails", JSON.stringify(res.data.data), { expires: 7 });
+      login(token, res.data.data);
 
       setErrorMsg("");
       setOtp(Array(6).fill(""));
@@ -271,8 +272,7 @@ export default function OTPLogin() {
 
       const { token, data } = res.data;
 
-      Cookies.set("jwtToken", token, { expires: 7 });
-      Cookies.set("userDetails", JSON.stringify(data), { expires: 7 });
+      login(token, data);
       setFreezeTimerLogin(0);
       setIsBlocked(false);
 
@@ -431,7 +431,7 @@ export default function OTPLogin() {
         className="flex flex-col md:flex-row bg-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl w-full"
       >
         <motion.div
-          className="md:w-1/2 flex items-center justify-center bg-white"
+          className="hidden md:flex md:w-1/2 items-center justify-center bg-white"
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -648,9 +648,7 @@ export default function OTPLogin() {
                       : "bg-gray-800 text-white"
                   }`}
                 >
-                  {loading
-                    ? "Logging in..."
-                    : `Login (${attemptsLeftLogin} Left)`}
+                  {loading ? "Logging in..." : "Login"}
                 </button>
 
                 <button
@@ -675,7 +673,7 @@ export default function OTPLogin() {
                     ? `Try again in ${retryIn}s`
                     : otpLoading
                     ? "Sending..."
-                    : `Login with OTP (${attemptsLeftOTP} left)`}
+                    : "Login with OTP"}
                 </button>
               </div>
             ) : (
