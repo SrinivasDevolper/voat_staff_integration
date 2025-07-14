@@ -1443,5 +1443,6 @@ module.exports = {
   verifyEmailChange,
   resendSignupOTP,
   resendLoginOTP,
+  getAuthStatus,
   // tempUsers // No longer needed, removed from export
 };

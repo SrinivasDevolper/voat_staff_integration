@@ -15,6 +15,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import axios from 'axios';
+import Cookies from 'js-cookie'; // Import js-cookie
 
 const AllApplicationsContent = () => {
   const [allApplications, setAllApplications] = useState([]);
@@ -30,7 +31,7 @@ const AllApplicationsContent = () => {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const token = localStorage.getItem("tempToken") || localStorage.getItem("token");
+        const token = Cookies.get("jwtToken"); // Changed from localStorage.getItem("tempToken") || localStorage.getItem("token")
         if (!token) {
           console.error("Authentication token not found.");
           setAllApplications([]);

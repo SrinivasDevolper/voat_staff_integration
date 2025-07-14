@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import {
   Briefcase,
   MapPin,
@@ -22,6 +23,8 @@ import {
   CalendarIcon
 } from 'lucide-react';
 import { Switch } from '@headlessui/react';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const PostJob = () => {
   const location = useLocation();
@@ -36,7 +39,7 @@ const PostJob = () => {
     location: '',
     salaryMin: '',
     salaryMax: '',
-    salaryPeriod: 'per month',
+    salaryPeriod: 'monthly',
     type: 'Full-time',
     experience: 'Mid-level',
     skills: [],
@@ -73,6 +76,9 @@ const PostJob = () => {
   }, [submitSuccess]);
 
   useEffect(() => {
+    console.log("Debug: PostJob - location.state:", location.state);
+    console.log("Debug: PostJob - location.state.jobData:", location.state?.jobData);
+
     if (location.state?.jobData) {
       const jobData = location.state.jobData;
       setFormData({
@@ -83,19 +89,35 @@ const PostJob = () => {
         location: jobData.location || '',
         salaryMin: jobData.salaryMin || '',
         salaryMax: jobData.salaryMax || '',
-        salaryPeriod: jobData.salaryPeriod || 'per month',
+        salaryPeriod: jobData.salaryPeriod || 'monthly',
         type: jobData.type || 'Full-time',
         experience: jobData.experience || 'Mid-level',
         skills: jobData.skills || [],
         postedDate: jobData.postedDate || new Date().toISOString().split('T')[0],
         applications: jobData.applications || 0,
         status: jobData.status || 'active',
-        isRemote: jobData.isRemote || false,
-        isUrgent: jobData.isUrgent || false
+        isRemote: jobData.work_mode === 'Remote',
+        isUrgent: jobData.is_urgent === 1
       });
 
       if (jobData.autoStopSettings) {
         setAutoStopSettings(jobData.autoStopSettings);
+      } else if (jobData.applications_needed !== null && jobData.applications_needed !== undefined) {
+        setAutoStopSettings(prev => ({
+          ...prev,
+          enabled: true,
+          option: 'applications',
+          applicationsCount: jobData.applications_needed,
+        }));
+      }
+
+      if (jobData.attachment_name) {
+        setFiles([{
+          name: jobData.attachment_name,
+          size: jobData.attachment_size,
+          type: jobData.attachment_type,
+          url: `${location.origin}/uploads/job_attachments/${jobData.attachment_name}`
+        }]);
       }
 
       setIsEditing(true);
@@ -194,7 +216,7 @@ const PostJob = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setFileError("");
@@ -229,35 +251,73 @@ const PostJob = () => {
       setIsSubmitting(false);
       return;
     }
-    const finalAutoStop = autoStopSettings.enabled ? {
-      ...autoStopSettings,
-      applicationsCount: Number(autoStopSettings.applicationsCount) || 0,
-      daysCount: Number(autoStopSettings.daysCount) || 0,
-    } : null;
-    const finalData = {
+
+    const jobDataToSend = {
       ...formData,
-      autoStopSettings: finalAutoStop,
-      postedDate: isEditing ? formData.postedDate : new Date().toISOString().split('T')[0],
-      attachments: files.map(file => file.name)
+      skills: JSON.stringify(formData.skills),
+      workMode: formData.isRemote ? 'Remote' : 'Work from Office',
+      applicationsNeeded: autoStopSettings.enabled ? autoStopSettings.applicationsCount : 0,
     };
-    setTimeout(() => {
-      console.log(isEditing ? 'Job updated:' : 'Job posted:', finalData);
+
+    const data = new FormData();
+    for (const key in jobDataToSend) {
+      data.append(key, jobDataToSend[key]);
+    }
+    if (files.length > 0) {
+      data.append('attachment', files[0]);
+    }
+
+    try {
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        toast.error("Authentication token not found. Please log in.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      let response;
+      if (isEditing) {
+        response = await axios.put(
+          `/api/hr/jobs/${formData.id}`,
+          data,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+        toast.success("Job updated successfully!");
+      } else {
+        response = await axios.post(
+          "/api/hr/jobs",
+          data,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+        toast.success("Job posted successfully!");
+      }
       setSubmitSuccess(true);
-      setIsSubmitting(false);
       setTimeout(() => {
-        if (isEditing) {
-          navigate('/all-jobs', { 
+        navigate('/hire/all-jobs', { 
             state: { 
-              updatedJob: finalData,
-              fromEdit: true 
+              updatedJob: response.data.job,
+              fromEdit: isEditing 
             },
             replace: true
           });
-        } else {
-          navigate('/all-jobs', { replace: true });
-        }
       }, 2000);
-    }, 1000);
+    } catch (error) {
+      console.error("Error submitting job:", error);
+      toast.error(error.response?.data?.error || "Failed to submit job. Please try again.");
+      setSubmitSuccess(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -285,7 +345,7 @@ const PostJob = () => {
               </p>
             </div>
             <Link
-              to={isEditing ? '/job-detail' : '/all-jobs'}
+              to={isEditing ? '/hire/all-jobs' : '/hire/all-jobs'}
               className="text-gray-500 hover:text-gray-700 flex items-center gap-1.5 transition-colors"
             >
               <X className="h-5 w-5" />
@@ -305,7 +365,7 @@ const PostJob = () => {
                       <label className="block text-lg font-semibold text-gray-900 flex items-center">
                         <Paperclip className="h-5 w-5 text-blue-500 mr-2" />
                         Attachments
-                        <span className="ml-2 text-sm font-normal text-gray-500">(Optional)</span>
+                        <span className="ml-2 text-sm font-normal text-gray-500">(Optional, Max 1)</span>
                       </label>
                       
                       <div className="bg-gray-50 rounded-lg border border-gray-200 p-2 hover:border-blue-300 transition-colors">
@@ -319,7 +379,6 @@ const PostJob = () => {
                           <input
                             type="file"
                             className="hidden"
-                            multiple
                             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                             onChange={handleFileChange}
                           />
@@ -559,11 +618,12 @@ const PostJob = () => {
                           value={formData.salaryPeriod}
                           onChange={handleInputChange}
                         >
-                          <option value="per hour">per hour</option>
-                          <option value="per day">per day</option>
-                          <option value="per week">per week</option>
-                          <option value="per month">per month</option>
-                          <option value="per year">per year</option>
+                          <option value="hourly">Hourly</option>
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="bi-weekly">Bi-Weekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="annually">Annually</option>
                         </select>
                       </div>
                     </div>

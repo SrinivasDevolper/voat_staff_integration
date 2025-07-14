@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, User } from "lucide-react";
 import axios from 'axios';
+import Cookies from 'js-cookie'; // Import js-cookie
 
 export default function HRSchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -29,7 +30,7 @@ export default function HRSchedulePage() {
         const startDate = new Date(year, month, 1).toISOString();
         const endDate = new Date(year, month + 1, 0).toISOString();
 
-        const token = localStorage.getItem("tempToken") || localStorage.getItem("token");
+        const token = Cookies.get("jwtToken"); // Changed from localStorage.getItem("tempToken") || localStorage.getItem("token")
         if (!token) {
           console.error("Authentication token not found.");
           setHrScheduleData([]);

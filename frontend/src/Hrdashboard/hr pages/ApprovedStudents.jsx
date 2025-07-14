@@ -14,6 +14,7 @@ import {
   User
 } from 'lucide-react';
 import axios from 'axios'; // Import axios
+import Cookies from 'js-cookie'; // Import js-cookie
 
 export default function ApprovedStudentsSection() {
   // Mock approved student data
@@ -191,7 +192,7 @@ export default function ApprovedStudentsSection() {
     }
 
     try {
-      const token = localStorage.getItem("tempToken") || localStorage.getItem("token");
+      const token = Cookies.get("jwtToken"); // Changed from localStorage
       if (!token) {
         setSchedulingError("Authentication token not found. Please log in again.");
         return;
@@ -201,8 +202,8 @@ export default function ApprovedStudentsSection() {
       const response = await axios.post(
         `/api/hr/applications/${interviewStudentId}/schedule-interview`,
         {
-          interviewDate,
-          interviewTime,
+            interviewDate, 
+            interviewTime,
           interviewLocation,
           notes: interviewNotes,
         },
@@ -219,7 +220,7 @@ export default function ApprovedStudentsSection() {
         prevStudents.map(student =>
           student.id === interviewStudentId
             ? { ...student, interviewScheduled: true, interviewDate, interviewTime, interviewStatus: "scheduled" }
-            : student
+        : student
         )
       );
       // Optionally, refetch all approved students to ensure consistency with backend
@@ -229,7 +230,7 @@ export default function ApprovedStudentsSection() {
       console.error("Error scheduling interview:", error);
       setSchedulingError(error.response?.data?.error || "Failed to schedule interview. Please try again.");
     }
-
+    
     // Reset the dialog
     setShowInterviewDialog(false);
     setInterviewStudentId(null);
@@ -704,40 +705,40 @@ export default function ApprovedStudentsSection() {
       )}
 
       {/* Schedule Interview Dialog */}
-      {showInterviewDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full border border-blue-100 shadow-xl">
-            <h3 className="text-lg font-medium mb-4 text-blue-800">Schedule Interview</h3>
+{showInterviewDialog && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-lg max-w-md w-full border border-blue-100 shadow-xl">
+      <h3 className="text-lg font-medium mb-4 text-blue-800">Schedule Interview</h3>
             {schedulingError && <p className="text-red-500 mb-2">{schedulingError}</p>}
             {schedulingSuccess && <p className="text-green-500 mb-2">{schedulingSuccess}</p>}
-            
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">Interview Date</label>
-                <input
-                  type="date"
-                  value={interviewDate}
-                  onChange={(e) => setInterviewDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-800"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">Interview Time</label>
-                <select
-                  value={interviewTime}
-                  onChange={(e) => setInterviewTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-800"
-                >
-                  <option value="" className="text-blue-400">Select a time slot</option>
-                  <option value="09:00-10:00" className="text-blue-800">09:00 AM - 10:00 AM</option>
-                  <option value="10:30-11:30" className="text-blue-800">10:30 AM - 11:30 AM</option>
-                  <option value="13:00-14:00" className="text-blue-800">01:00 PM - 02:00 PM</option>
-                  <option value="14:30-15:30" className="text-blue-800">02:30 PM - 03:30 PM</option>
-                  <option value="16:00-17:00" className="text-blue-800">04:00 PM - 05:00 PM</option>
-                </select>
-              </div>
+      
+      <div className="space-y-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium text-blue-700 mb-1">Interview Date</label>
+          <input
+            type="date"
+            value={interviewDate}
+            onChange={(e) => setInterviewDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+            className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-800"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-blue-700 mb-1">Interview Time</label>
+          <select
+            value={interviewTime}
+            onChange={(e) => setInterviewTime(e.target.value)}
+            className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-800"
+          >
+            <option value="" className="text-blue-400">Select a time slot</option>
+            <option value="09:00-10:00" className="text-blue-800">09:00 AM - 10:00 AM</option>
+            <option value="10:30-11:30" className="text-blue-800">10:30 AM - 11:30 AM</option>
+            <option value="13:00-14:00" className="text-blue-800">01:00 PM - 02:00 PM</option>
+            <option value="14:30-15:30" className="text-blue-800">02:30 PM - 03:30 PM</option>
+            <option value="16:00-17:00" className="text-blue-800">04:00 PM - 05:00 PM</option>
+          </select>
+        </div>
               {/* New fields for location and notes */}
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-1">Location</label>
@@ -759,35 +760,35 @@ export default function ApprovedStudentsSection() {
                   className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-800"
                 ></textarea>
               </div>
-            </div>
-            
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowInterviewDialog(false);
-                  setInterviewStudentId(null);
+      </div>
+      
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => {
+            setShowInterviewDialog(false);
+            setInterviewStudentId(null);
                   setSchedulingError('');
                   setSchedulingSuccess('');
-                }}
-                className="px-4 py-2 border border-blue-200 rounded-md text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleScheduleInterview}
+          }}
+          className="px-4 py-2 border border-blue-200 rounded-md text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleScheduleInterview}
                 disabled={!interviewDate || !interviewTime || !interviewLocation}
-                className={`px-4 py-2 rounded-md transition-colors ${
+          className={`px-4 py-2 rounded-md transition-colors ${
                   !interviewDate || !interviewTime || !interviewLocation
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md'
-                }`}
-              >
-                Schedule
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md'
+          }`}
+        >
+          Schedule
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

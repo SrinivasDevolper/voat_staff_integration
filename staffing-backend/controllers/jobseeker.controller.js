@@ -303,8 +303,8 @@ const updateProfile = async (req, res) => {
         typeof profileUpdates.parentDetails !== "object" ||
         profileUpdates.parentDetails === null
       ) {
-        errors.push("Parent details must be an object.");
-      } else {
+            errors.push("Parent details must be an object.");
+        } else {
         if (
           profileUpdates.parentDetails.name !== undefined &&
           (typeof profileUpdates.parentDetails.name !== "string" ||
@@ -313,14 +313,14 @@ const updateProfile = async (req, res) => {
           errors.push(
             "Parent name must be a string and less than 255 characters."
           );
-        }
+            }
         if (
           profileUpdates.parentDetails.phone !== undefined &&
           (typeof profileUpdates.parentDetails.phone !== "string" ||
             !validator.isMobilePhone(profileUpdates.parentDetails.phone, "any"))
         ) {
-          errors.push("Parent phone must be a valid mobile number.");
-        }
+                errors.push("Parent phone must be a valid mobile number.");
+            }
         if (
           profileUpdates.parentDetails.relation !== undefined &&
           (typeof profileUpdates.parentDetails.relation !== "string" ||
@@ -329,15 +329,15 @@ const updateProfile = async (req, res) => {
           errors.push(
             "Parent relation must be a string and less than 50 characters."
           );
-        }
+            }
         if (
           profileUpdates.parentDetails.email !== undefined &&
           (typeof profileUpdates.parentDetails.email !== "string" ||
             !validator.isEmail(profileUpdates.parentDetails.email))
         ) {
-          errors.push("Parent email must be a valid email address.");
+                errors.push("Parent email must be a valid email address.");
+            }
         }
-      }
     }
 
     if (errors.length > 0) {
@@ -377,16 +377,16 @@ const getJobs = async (req, res) => {
     } = req.query;
 
     // Pass all query parameters to the centralized helper function
-    const { jobs, totalJobs, totalPages, currentPage } = await findJobs({
-      q,
-      experienceLevel,
-      location,
-      datePosted,
-      isUrgent,
-      page,
-      limit,
-      minSalary,
-      maxSalary,
+    const { jobs, totalJobs, totalPages, currentPage } = await findJobs({ 
+      q, 
+      experienceLevel, 
+      location, 
+      datePosted, 
+      isUrgent, 
+      page, 
+      limit, 
+      minSalary, 
+      maxSalary, 
       employmentType,
     });
 

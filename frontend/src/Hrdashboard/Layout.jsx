@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Head';
 import Sidebar from './Sidebars';
+import { NotificationProvide } from '../Hrdashboard/contexts/Notification'; // Import NotificationProvide
 
 const Layout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
+    <NotificationProvide> {/* Wrap the entire layout with NotificationProvide */}
     <div className="fixed inset-0 flex flex-col">
       <Header 
         onMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)}
@@ -24,6 +26,7 @@ const Layout = () => {
         </main>
       </div>
     </div>
+    </NotificationProvide>
   );
 };
 

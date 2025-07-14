@@ -7,33 +7,66 @@ import {
   useEffect 
 } from 'react';
 import axios from 'axios';
-import Cookies from 'js-cookie';
+import Cookies from 'js-cookie'; // Import js-cookie
 
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState([]); // Initialize as empty array
-  
+  const [notifications, setNotifications] = useState([]);
+  const [authToken, setAuthToken] = useState(() => Cookies.get("jwtToken")); // Changed from localStorage
+  const [currentUserRole, setCurrentUserRole] = useState(() => {
+    try {
+      const userDetailsString = Cookies.get("userDetails"); // Changed from localStorage
+      return userDetailsString ? JSON.parse(userDetailsString).role : null;
+    } catch (e) {
+      console.error("Failed to parse userDetails from cookie at startup:", e); // Changed from localStorage
+      return null;
+    }
+  });
+
   const fetchNotifications = useCallback(async () => {
     try {
-      const token = Cookies.get("jwtToken");
-      if (!token) {
-        console.error("Authentication token not found for notifications.");
+      const token = Cookies.get("jwtToken"); // Changed from localStorage
+      const userDetailsString = Cookies.get("userDetails"); // Changed from localStorage
+      let role = null;
+      if (userDetailsString) {
+        try {
+          const userDetails = JSON.parse(userDetailsString);
+          role = userDetails.role;
+        } catch (parseError) {
+          console.error("Error parsing userDetails from cookie in fetchNotifications:", parseError); // Changed from localStorage
+        }
+      }
+
+      if (!token || role !== 'hr') {
+        console.error("Authentication token or user role not found for notifications (in fetchNotifications).");
         setNotifications([]);
         return;
       }
-      const response = await axios.get('/api/jobseeker/notifications', {
+
+      let notificationsApiUrl = '';
+      if (role === 'hr') {
+        notificationsApiUrl = '/api/hr/notifications';
+      } else if (role === 'jobseeker') {
+        notificationsApiUrl = '/api/jobseeker/notifications';
+      } else {
+        console.error(`Unsupported user role for notifications: ${role}`);
+        setNotifications([]);
+        return;
+      }
+
+      const response = await axios.get(notificationsApiUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        withCredentials: true
       });
       console.log("Debug: NotificationContext - Full response:", response);
       console.log("Debug: NotificationContext - response.data:", response.data);
-      const fetchedNotifications = response.data.notifications.map(n => ({
+      
+      const fetchedNotifications = (response.data.notifications || response.data).map(n => ({
         id: n.notification_id,
-        title: n.title, // Map backend title to frontend title
-        message: n.message, // Map backend message to frontend message
+        title: n.title,
+        message: n.message,
         isRead: n.is_read === 1,
         date: new Date(n.created_at),
         type: n.type
@@ -41,12 +74,32 @@ export const NotificationProvider = ({ children }) => {
       setNotifications(fetchedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      // Optionally, set an error state or show a toast notification
     }
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    const handleAuthChange = () => {
+      console.log("authChange event triggered in NotificationContext");
+      // Update local state from Cookies after auth change
+      setAuthToken(Cookies.get("jwtToken")); // Changed from localStorage
+      try {
+        const userDetailsString = Cookies.get("userDetails"); // Changed from localStorage
+        setCurrentUserRole(userDetailsString ? JSON.parse(userDetailsString).role : null);
+      } catch (e) {
+        console.error("Error parsing userDetails from cookie on authChange:", e); // Changed from localStorage
+        setCurrentUserRole(null);
+      }
+      fetchNotifications(); // Re-fetch notifications after auth change
+    };
+
+    // Removed window.addEventListener('storage', handleAuthChange) as it's not needed for cookies
+    window.addEventListener('authChange', handleAuthChange);
+
+    fetchNotifications(); // Initial fetch on component mount
+
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+    };
   }, [fetchNotifications]);
 
   const unreadCount = useMemo(
@@ -56,21 +109,42 @@ export const NotificationProvider = ({ children }) => {
 
   const markAsRead = useCallback(async (id) => {
     try {
-      const token = Cookies.get("jwtToken");
-      if (!token) {
-        console.error("Authentication token not found for marking notification as read.");
+      const token = Cookies.get("jwtToken"); // Changed from localStorage
+      const userDetailsString = Cookies.get("userDetails"); // Changed from localStorage
+      let role = null;
+      if (userDetailsString) {
+        try {
+          const userDetails = JSON.parse(userDetailsString);
+          role = userDetails.role;
+        } catch (parseError) {
+          console.error("Error parsing userDetails from cookie in markAsRead:", parseError); // Changed from localStorage
+        }
+      }
+
+      if (!token || !role) {
+        console.error("Authentication token or user role not found for marking notification as read.");
         return;
       }
-      await axios.put(`/api/jobseeker/notifications/${id}/read`, {},
+
+      let markAsReadApiUrl = '';
+      if (role === 'hr') {
+        markAsReadApiUrl = `/api/hr/notifications/${id}`;
+      } else if (role === 'jobseeker') {
+        markAsReadApiUrl = `/api/jobseeker/notifications/${id}/read`;
+      } else {
+        console.error(`Unsupported user role for marking notification as read: ${role}`);
+        return;
+      }
+
+      await axios.patch(markAsReadApiUrl, {},
       {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        withCredentials: true
       });
-      setNotifications(prev =>
+    setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-      );
+    );
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -78,17 +152,38 @@ export const NotificationProvider = ({ children }) => {
 
   const markAllAsRead = useCallback(async () => {
     try {
-      const token = Cookies.get("jwtToken");
-      if (!token) {
-        console.error("Authentication token not found for marking all notifications as read.");
+      const token = Cookies.get("jwtToken"); // Changed from localStorage
+      const userDetailsString = Cookies.get("userDetails"); // Changed from localStorage
+      let role = null;
+      if (userDetailsString) {
+        try {
+          const userDetails = JSON.parse(userDetailsString);
+          role = userDetails.role;
+        } catch (parseError) {
+          console.error("Error parsing userDetails from cookie in markAllAsRead:", parseError); // Changed from localStorage
+        }
+      }
+
+      if (!token || !role) {
+        console.error("Authentication token or user role not found for marking all notifications as read.");
         return;
       }
-      await axios.put('/api/jobseeker/notifications/mark-all-read', {},
+
+      let markAllAsReadApiUrl = '';
+      if (role === 'hr') {
+        markAllAsReadApiUrl = '/api/hr/notifications/mark-all-read';
+      } else if (role === 'jobseeker') {
+        markAllAsReadApiUrl = '/api/jobseeker/notifications/mark-all-read';
+      } else {
+        console.error(`Unsupported user role for marking all notifications as read: ${role}`);
+        return;
+      }
+
+      await axios.patch(markAllAsReadApiUrl, {},
       {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        withCredentials: true
       });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
@@ -120,8 +215,6 @@ export const NotificationProvider = ({ children }) => {
   }, [notifications]);
 
   const addNotification = useCallback((title, message, date, type = "general") => {
-    // This function might be less relevant if all notifications come from backend
-    // but kept for potential frontend-only notifications or immediate updates
     const newNotification = {
       id: Date.now(),
       title,
@@ -134,25 +227,45 @@ export const NotificationProvider = ({ children }) => {
   }, []);
 
   const deleteNotification = useCallback(async (id) => {
-    // Implement backend API call for deletion if needed
     try {
-      const token = Cookies.get("jwtToken");
-      if (!token) {
-        console.error("Authentication token not found for deleting notification.");
+      const token = Cookies.get("jwtToken"); // Changed from localStorage
+      const userDetailsString = Cookies.get("userDetails"); // Changed from localStorage
+      let role = null;
+      if (userDetailsString) {
+        try {
+          const userDetails = JSON.parse(userDetailsString);
+          role = userDetails.role;
+        } catch (parseError) {
+          console.error("Error parsing userDetails from cookie in deleteNotification:", parseError); // Changed from localStorage
+        }
+      }
+
+      if (!token || !role) {
+        console.error("Authentication token or user role not found for deleting notification.");
         return;
       }
-      await axios.delete(`/api/jobseeker/notifications/${id}`,
+
+      let deleteNotificationApiUrl = '';
+      if (role === 'hr') {
+        deleteNotificationApiUrl = `/api/hr/notifications/${id}`;
+      } else if (role === 'jobseeker') {
+        deleteNotificationApiUrl = `/api/jobseeker/notifications/${id}`;
+      } else {
+        console.error(`Unsupported user role for deleting notification: ${role}`);
+        return;
+      }
+
+      await axios.delete(deleteNotificationApiUrl,
       {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        withCredentials: true
       });
-      setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
-  }, []);
+  }, []); // Remove dependencies as token/role are read inside
 
   const value = useMemo(() => ({
     notifications,

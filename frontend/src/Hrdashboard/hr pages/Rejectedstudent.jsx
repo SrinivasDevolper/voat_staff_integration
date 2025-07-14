@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect
 import {
   ArrowLeft,
   ChevronLeft,
@@ -13,72 +13,13 @@ import {
   FileText,
   User
 } from 'lucide-react';
+import axios from 'axios'; // Import axios
+import Cookies from 'js-cookie'; // Import js-cookie
+import { apiUrl } from "../../utilits/apiUrl"; // Import apiUrl
 
 export default function RejectedStudentsSection() {
   // Mock rejected student data
-  const [rejectedStudents, setRejectedStudents] = useState([
-    {
-      id: 1,
-      name: "David Wilson",
-      email: "david.wilson@example.com",
-      phone: "(555) 111-2222",
-      portfolio: "davidwilson.dev",
-      location: "Chicago, IL",
-      program: "Business Administration",
-      education: "MBA, University of Chicago",
-      rejectedDate: "2023-10-15",
-      bio: "Business professional with 5 years of experience in financial analysis and strategic planning.",
-      skills: ["Financial Modeling", "Excel", "Market Analysis"],
-      status: "rejected",
-      resume: "https://example.com/resumes/david-wilson-resume.pdf"
-    },
-    {
-      id: 2,
-      name: "Emily Parker",
-      email: "emily.parker@example.com",
-      phone: "(555) 333-4444",
-      portfolio: "emilyparker.dev",
-      location: "Austin, TX",
-      program: "Graphic Design",
-      education: "B.F.A. Graphic Design, RISD",
-      rejectedDate: "2023-10-18",
-      bio: "Creative designer specializing in branding and digital media. Worked with several startups.",
-      skills: ["Adobe Creative Suite", "UI/UX Design", "Branding"],
-      status: "rejected",
-      resume: "https://example.com/resumes/emily-parker-resume.pdf"
-    },
-    // Add more mock data if needed to test pagination
-    {
-      id: 3,
-      name: "John Smith",
-      email: "john.smith@example.com",
-      phone: "(555) 555-5555",
-      portfolio: "johnsmith.dev",
-      location: "New York, NY",
-      program: "Computer Science",
-      education: "B.S. Computer Science, NYU",
-      rejectedDate: "2023-10-20",
-      bio: "Software engineer with experience in web development and cloud computing.",
-      skills: ["JavaScript", "React", "AWS"],
-      status: "rejected",
-      resume: "https://example.com/resumes/john-smith-resume.pdf"
-    },
-    {
-      id: 4,
-      name: "Sarah Johnson",
-      email: "sarah.johnson@example.com",
-      phone: "(555) 666-7777",
-      portfolio: "sarahjohnson.dev",
-      location: "San Francisco, CA",
-      program: "Data Science",
-      education: "M.S. Data Science, Stanford",
-      rejectedDate: "2023-10-22",
-      bio: "Data scientist with expertise in machine learning and big data analytics.",
-      skills: ["Python", "TensorFlow", "SQL"],
-      status: "rejected",
-      resume: "https://example.com/resumes/sarah-johnson-resume.pdf"
-    }
-  ]);
+  const [rejectedStudents, setRejectedStudents] = useState([]); // Changed to empty array initially
 
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [applicationToApprove, setApplicationToApprove] = useState(null);
@@ -86,8 +27,51 @@ export default function RejectedStudentsSection() {
   const [currentPage, setCurrentPage] = useState(1);
   const [studentsPerPage] = useState(3);
 
+  // Fetch rejected students from the backend
+  useEffect(() => {
+    const fetchRejectedStudents = async () => {
+      try {
+        const token = Cookies.get("jwtToken");
+        if (!token) {
+          console.error("Authentication token not found.");
+          setRejectedStudents([]);
+          return;
+        }
+
+        const response = await axios.get(`${apiUrl}/hr/applications?status=Rejected`, { // Assuming an endpoint for filtering by status
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // Filter for applications that are 'Rejected' if the backend doesn't filter directly
+        const fetchedApplications = response.data.filter(app => app.status === "Rejected").map(app => ({
+          id: app.application_id,
+          name: app.jobseeker_username || "N/A", // Assuming jobseeker_username from backend
+          email: app.jobseeker_email || "N/A",   // Assuming jobseeker_email from backend
+          phone: app.jobseeker_phone || "N/A",   // Assuming jobseeker_phone from backend
+          portfolio: app.jobseeker_portfolio || "N/A", // Assuming jobseeker_portfolio
+          location: app.jobseeker_location || "N/A", // Assuming jobseeker_location
+          program: "N/A", // This might need to be fetched separately or inferred
+          education: app.jobseeker_education || "N/A", // Assuming jobseeker_education
+          rejectedDate: new Date(app.updated_at), // Using updated_at for status change date
+          bio: app.jobseeker_bio || "N/A", // Assuming jobseeker_bio
+          skills: app.jobseeker_skills ? app.jobseeker_skills.split(',').map(s => s.trim()) : [], // Assuming comma-separated skills
+          status: app.status,
+          resume: app.resume_filepath, // Assuming resume_filepath
+          projects: app.jobseeker_projects ? JSON.parse(app.jobseeker_projects) : [], // Assuming JSON string
+          certifications: app.jobseeker_certifications ? JSON.parse(app.jobseeker_certifications) : [] // Assuming JSON string
+        }));
+        setRejectedStudents(fetchedApplications);
+      } catch (error) {
+        console.error("Error fetching rejected students:", error);
+        setRejectedStudents([]);
+      }
+    };
+    fetchRejectedStudents();
+  }, []);
+
   // Filter rejected students
-  const filteredStudents = rejectedStudents.filter(s => s.status === "rejected");
+  const filteredStudents = rejectedStudents.filter(s => s.status === "Rejected"); // Ensured filter for "Rejected"
 
   // Pagination logic
   const indexOfLastStudent = currentPage * studentsPerPage;
@@ -133,24 +117,44 @@ export default function RejectedStudentsSection() {
   };
 
   // Handle student status change to approved
-  const handleApprove = (id) => {
-    setRejectedStudents(rejectedStudents.map(student => 
-      student.id === id ? { ...student, status: "approved" } : student
-    ));
+  const handleApprove = async (id) => { // Made async
+    try {
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found.");
+        return;
+      }
+      await axios.put(`${apiUrl}/hr/applications/${id}/status`, { status: "Approved" }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setRejectedStudents(prevStudents => prevStudents.filter(student => student.id !== id)); // Remove from current list
     setApplicationToApprove(null);
-    if (selectedStudent?.id === id) {
       setSelectedStudent(null);
+    } catch (error) {
+      console.error("Error approving student:", error);
     }
   };
 
   // Handle student status change to hold
-  const handleHold = (id) => {
-    setRejectedStudents(rejectedStudents.map(student => 
-      student.id === id ? { ...student, status: "hold" } : student
-    ));
+  const handleHold = async (id) => { // Made async
+    try {
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found.");
+        return;
+      }
+      await axios.put(`${apiUrl}/hr/applications/${id}/status`, { status: "On Hold" }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setRejectedStudents(prevStudents => prevStudents.filter(student => student.id !== id)); // Remove from current list
     setApplicationToHold(null);
-    if (selectedStudent?.id === id) {
       setSelectedStudent(null);
+    } catch (error) {
+      console.error("Error holding student:", error);
     }
   };
 
@@ -233,7 +237,7 @@ export default function RejectedStudentsSection() {
                 className="text-blue-600 hover:underline flex items-center gap-2 text-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Download Full Resume
               </a>
@@ -281,7 +285,7 @@ export default function RejectedStudentsSection() {
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium flex items-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             DOWNLOAD RESUME
           </button>

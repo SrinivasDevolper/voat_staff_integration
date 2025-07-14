@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect
 import {
   ArrowLeft,
   ChevronLeft,
@@ -13,106 +13,66 @@ import {
   FileText,
   User
 } from 'lucide-react';
+import axios from 'axios'; // Import axios
+import Cookies from 'js-cookie'; // Import js-cookie
+import { apiUrl } from "../../utilits/apiUrl"; // Import apiUrl
 
 export default function StudentsOnHoldSection() {
   // Mock students on hold data
-  const [studentsOnHold, setStudentsOnHold] = useState([
-    {
-      id: 1,
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      phone: "(555) 123-4567",
-      portfolio: "alexjohnson.dev",
-      location: "New York, NY",
-      program: "Computer Science",
-      education: "B.S. Computer Science, MIT",
-      approvedDate: "2023-10-16",
-      bio: "Senior computer science student with a passion for AI and machine learning. Completed internships at Google and Microsoft.",
-      skills: ["Python", "Machine Learning", "Data Structures"],
-      status: "hold",
-      resume: "https://example.com/resumes/alex-johnson-resume.pdf",
-      projects: [
-        {
-          name: "AI Chatbot",
-          description: "Developed a conversational AI using Python and TensorFlow",
-          technologies: ["Python", "TensorFlow", "NLP"]
-        }
-      ],
-      certifications: [
-        "AWS Certified Developer",
-        "Google Cloud Professional"
-      ]
-    },
-    {
-      id: 2,
-      name: "Sarah Williams",
-      email: "sarah.williams@example.com",
-      phone: "(555) 987-6543",
-      portfolio: "sarahwilliams.dev",
-      location: "San Francisco, CA",
-      program: "Data Science",
-      education: "M.S. Data Science, Stanford University",
-      approvedDate: "2023-10-17",
-      bio: "Data scientist specializing in predictive analytics and big data processing. Published research in machine learning applications.",
-      skills: ["R", "Python", "SQL", "Tableau"],
-      status: "hold",
-      resume: "https://example.com/resumes/sarah-williams-resume.pdf"
-    },
-    {
-      id: 3,
-      name: "Michael Chen",
-      email: "michael.chen@example.com",
-      phone: "(555) 456-7890",
-      portfolio: "michaelchen.dev",
-      location: "Boston, MA",
-      program: "Electrical Engineering",
-      education: "Ph.D. Electrical Engineering, MIT",
-      approvedDate: "2023-10-19",
-      bio: "Electrical engineer with expertise in embedded systems and IoT. Holds 3 patents in sensor technology.",
-      skills: ["C++", "Embedded Systems", "Circuit Design"],
-      status: "hold",
-      resume: "https://example.com/resumes/michael-chen-resume.pdf"
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      email: "emily.davis@example.com",
-      phone: "(555) 789-0123",
-      portfolio: "emilydavis.dev",
-      location: "Chicago, IL",
-      program: "Business Administration",
-      education: "MBA, Harvard Business School",
-      approvedDate: "2023-10-20",
-      bio: "Business strategist with experience in market analysis and financial planning. Led multiple successful product launches.",
-      skills: ["Strategic Planning", "Financial Analysis", "Market Research"],
-      status: "hold",
-      resume: "https://example.com/resumes/emily-davis-resume.pdf"
-    },
-    {
-      id: 5,
-      name: "David Wilson",
-      email: "david.wilson@example.com",
-      phone: "(555) 234-5678",
-      portfolio: "davidwilson.dev",
-      location: "Seattle, WA",
-      program: "Mechanical Engineering",
-      education: "M.S. Mechanical Engineering, University of Washington",
-      approvedDate: "2023-10-21",
-      bio: "Mechanical engineer specializing in renewable energy systems. Designed several innovative wind turbine components.",
-      skills: ["CAD", "Thermodynamics", "Fluid Mechanics"],
-      status: "hold",
-      resume: "https://example.com/resumes/david-wilson-resume.pdf"
-    }
-  ]);
+  const [studentsOnHold, setStudentsOnHold] = useState([]); // Changed to empty array initially
   
+  const [applicationToHold, setApplicationToHold] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [applicationToApprove, setApplicationToApprove] = useState(null);
   const [applicationToReject, setApplicationToReject] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [studentsPerPage] = useState(3);
 
+  // Fetch students on hold from the backend
+  useEffect(() => {
+    const fetchStudentsOnHold = async () => {
+      try {
+        const token = Cookies.get("jwtToken");
+        if (!token) {
+          console.error("Authentication token not found.");
+          setStudentsOnHold([]);
+          return;
+        }
+
+        const response = await axios.get(`${apiUrl}/hr/applications?status=On Hold`, { // Assuming an endpoint for filtering by status
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // Filter for applications that are 'On Hold' if the backend doesn't filter directly
+        const fetchedApplications = response.data.filter(app => app.status === "On Hold").map(app => ({
+          id: app.application_id,
+          name: app.jobseeker_username || "N/A", // Assuming jobseeker_username from backend
+          email: app.jobseeker_email || "N/A",   // Assuming jobseeker_email from backend
+          phone: app.jobseeker_phone || "N/A",   // Assuming jobseeker_phone from backend
+          portfolio: app.jobseeker_portfolio || "N/A", // Assuming jobseeker_portfolio
+          location: app.jobseeker_location || "N/A", // Assuming jobseeker_location
+          program: "N/A", // This might need to be fetched separately or inferred
+          education: app.jobseeker_education || "N/A", // Assuming jobseeker_education
+          approvedDate: new Date(app.updated_at), // Using updated_at for status change date
+          bio: app.jobseeker_bio || "N/A", // Assuming jobseeker_bio
+          skills: app.jobseeker_skills ? app.jobseeker_skills.split(',').map(s => s.trim()) : [], // Assuming comma-separated skills
+          status: app.status,
+          resume: app.resume_filepath, // Assuming resume_filepath
+          projects: app.jobseeker_projects ? JSON.parse(app.jobseeker_projects) : [], // Assuming JSON string
+          certifications: app.jobseeker_certifications ? JSON.parse(app.jobseeker_certifications) : [] // Assuming JSON string
+        }));
+        setStudentsOnHold(fetchedApplications);
+      } catch (error) {
+        console.error("Error fetching students on hold:", error);
+        setStudentsOnHold([]);
+      }
+    };
+    fetchStudentsOnHold();
+  }, []);
+
   // Filter students on hold
-  const filteredStudents = studentsOnHold.filter(s => s.status === "hold");
+  const filteredStudents = studentsOnHold.filter(s => s.status === "On Hold"); // Ensured filter for "On Hold"
 
   // Pagination logic
   const indexOfLastStudent = currentPage * studentsPerPage;
@@ -158,25 +118,43 @@ export default function StudentsOnHoldSection() {
   };
 
   // Handle student status change
-  const handleApprove = (id) => {
-    setStudentsOnHold(studentsOnHold.map(student => 
-      student.id === id ? { ...student, status: "approved" } : student
-    ));
+  const handleApprove = async (id) => { // Made async
+    try {
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found.");
+        return;
+      }
+      await axios.put(`${apiUrl}/hr/applications/${id}/status`, { status: "Approved" }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setStudentsOnHold(prevStudents => prevStudents.filter(student => student.id !== id)); // Remove from current list
     setApplicationToApprove(null);
-    // If we're viewing the approved student, go back to list
-    if (selectedStudent?.id === id) {
       setSelectedStudent(null);
+    } catch (error) {
+      console.error("Error approving student:", error);
     }
   };
 
-  const handleReject = (id) => {
-    setStudentsOnHold(studentsOnHold.map(student => 
-      student.id === id ? { ...student, status: "rejected" } : student
-    ));
+  const handleReject = async (id) => { // Made async
+    try {
+      const token = Cookies.get("jwtToken");
+      if (!token) {
+        console.error("Authentication token not found.");
+        return;
+      }
+      await axios.put(`${apiUrl}/hr/applications/${id}/status`, { status: "Rejected" }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setStudentsOnHold(prevStudents => prevStudents.filter(student => student.id !== id)); // Remove from current list
     setApplicationToReject(null);
-    // If we're viewing the rejected student, go back to list
-    if (selectedStudent?.id === id) {
       setSelectedStudent(null);
+    } catch (error) {
+      console.error("Error rejecting student:", error);
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Bell, BellDot, Home, Menu, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useNotifications } from "./contexts/Notification";
+import Cookies from "js-cookie";
 
 const Header = ({ onMenuToggle }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -12,9 +13,12 @@ const Header = ({ onMenuToggle }) => {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleLogout = () => {
+    Cookies.remove("jwtToken");
+    Cookies.remove("userDetails");
     console.log("User logged out");
     navigate("/login");
   };
+
 
   const formatNotificationTime = (date) => {
     if (!date) return "";
