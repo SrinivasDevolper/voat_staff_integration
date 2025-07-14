@@ -556,6 +556,7 @@ const loginPassword = async (req, res) => {
 
 // Request Login OTP Controller
 const requestLoginOTP = async (req, res) => {
+  console.log("DEBUG: Entered requestLoginOTP function");
   const { email } = req.body;
 
   if (!email) {
@@ -823,6 +824,7 @@ const resendLoginOTP = async (req, res) => {
 
 // Verify OTP Controller (Signup & Login)
 const verifyOTP = async (req, res) => {
+  console.log("DEBUG: Entered verifyOTP function");
   const { email, otp, tempToken, type } = req.body;
 
   if (!validator.isEmail(email)) {
@@ -836,6 +838,8 @@ const verifyOTP = async (req, res) => {
   const now = Date.now();
   const SIGNUP_OTP_ATTEMPTS_LIMIT = 3; // Allow 3 tries before showing 0
   const SIGNUP_BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
+  const MAX_ATTEMPTS = 3;
+  const BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
 
   if (type === "signup") {
     if (!tempToken) {
@@ -968,29 +972,8 @@ const verifyOTP = async (req, res) => {
     }
   }
 
-  // 🟡 Leave login path unchanged
-};
-
-const loginOtpVerify = async (req, res) => {
-  const { email, otp, type } = req.body;
-
-  if (!email || !otp) {
-    return res.status(400).json({ error: "Enter and OTP and Email" });
-  }
-
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: "Enter a valid email" });
-  }
-
-  if (!otp || otp.length !== 6) {
-    return res.status(400).json({ error: "Invalid OTP" });
-  }
-
-  const now = Date.now();
-  const MAX_ATTEMPTS = 3;
-  const BLOCK_DURATION = 5 * 60 * 1000;
-
-  if (type === "login") {
+  // Add login path here
+  else if (type === "login") {
     let loginRecord = await findUserByEmail(email);
     if (!loginRecord) {
       return res
@@ -1103,7 +1086,7 @@ const loginOtpVerify = async (req, res) => {
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         process.env.JWT_SECRET,
-        { expiresIn: "7d" }
+        { expiresIn: "1h" }
       );
 
       return res.json({
@@ -1122,6 +1105,11 @@ const loginOtpVerify = async (req, res) => {
         .status(500)
         .json({ error: "An unexpected server error occurred." });
     }
+  }
+
+  // If type is not 'signup' or 'login', or if 'type' is missing, return an error
+  else {
+    return res.status(400).json({ error: "Invalid or missing OTP verification type." });
   }
 };
 
@@ -1455,6 +1443,6 @@ module.exports = {
   verifyEmailChange,
   resendSignupOTP,
   resendLoginOTP,
-  loginOtpVerify,
+  getAuthStatus,
   // tempUsers // No longer needed, removed from export
 };

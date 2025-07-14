@@ -4,76 +4,88 @@ import {
   useState, 
   useContext, 
   useCallback, 
-  useMemo 
+  useMemo,
+  useEffect // Import useEffect
 } from 'react';
+import axios from 'axios'; // Import axios
+import Cookies from 'js-cookie'; // Import Cookies
+import { apiUrl } from '../../utilits/apiUrl'; // Import apiUrl
 
 const NotificationContext = createContext();
 
 export const NotificationProvide = ({ children }) => {
-  const [notifications, setNotifications] = useState([
-    { 
-      id: 1, 
-      text: "HR from TechCorp scheduled an interview for April 15", 
-      read: false, 
-      date: new Date(2025, 3, 15),
-      type: "interview"
-    },
-    { 
-      id: 10, 
-      text: "HR from TechCorp scheduled an interview for April 15", 
-      read: false, 
-      date: new Date(2025, 3, 15),
-      type: "interview"
-    },
-    { 
-      id: 11, 
-      text: "HR from TechCorp scheduled an interview for April 15", 
-      read: false, 
-      date: new Date(2025, 3, 15),
-      type: "interview"
-    },
-    { 
-      id: 12, 
-      text: "HR from TechCorp scheduled an interview for April 15", 
-      read: false, 
-      date: new Date(2025, 3, 15),
-      type: "interview"
-    },
-    { 
-      id: 2, 
-      text: "Reminder: Interview with DesignHub tomorrow at 2 PM", 
-      read: true, 
-      date: new Date(2025, 3, 18),
-      type: "reminder"
-    },
-    { 
-      id: 3, 
-      text: "New job posting matches your profile", 
-      read: false,
-      type: "job-alert" 
-    },
-    { 
-      id: 4, 
-      text: "Follow-up required for application submitted April 3", 
-      read: false, 
-      date: new Date(2025, 3, 3),
-      type: "follow-up"
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]); // Initialize with empty array
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const token = Cookies.get('jwtToken');
+      if (!token) {
+        console.log("No JWT token found for notifications.");
+        setNotifications([]);
+        return;
+      }
+      const response = await axios.get(`${apiUrl}/hr/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // Map backend data to frontend structure if necessary
+      const fetchedNotifications = response.data.map(notif => ({
+        id: notif.notification_id,
+        text: notif.message,
+        read: notif.is_read === 1, // Assuming is_read is TINYINT(1)
+        date: new Date(notif.created_at),
+        type: notif.type,
+      }));
+      setNotifications(fetchedNotifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      // Optionally, set an error state or display a toast
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll for new notifications every 30 seconds (adjust as needed)
+    const intervalId = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchNotifications]);
 
   const unreadCount = useMemo(
     () => notifications.filter(n => !n.read).length,
     [notifications]
   );
 
-  const markAsRead = useCallback((id) => {
+  const markAsRead = useCallback(async (id) => {
+    try {
+      const token = Cookies.get('jwtToken');
+      if (!token) return;
+      await axios.patch(`${apiUrl}/hr/notifications/${id}`, null, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const token = Cookies.get('jwtToken');
+      if (!token) return;
+      await axios.patch(`${apiUrl}/hr/notifications/mark-all-read`, null, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
   }, []);
 
   const getNotificationsForDate = useCallback((date) => {
@@ -100,6 +112,8 @@ export const NotificationProvide = ({ children }) => {
   }, [notifications]);
 
   const addNotification = useCallback((text, date, type = "general") => {
+    // This function can be used to manually add a notification to the local state
+    // For real-time updates, the backend should ideally send a new notification that's then fetched.
     const newNotification = {
       id: Date.now(),
       text,
@@ -110,8 +124,20 @@ export const NotificationProvide = ({ children }) => {
     setNotifications(prev => [newNotification, ...prev]);
   }, []);
 
-  const deleteNotification = useCallback((id) => {
+  const deleteNotification = useCallback(async (id) => {
+    try {
+      const token = Cookies.get('jwtToken');
+      if (!token) return;
+      // Assuming a backend endpoint for deleting a single notification
+      // await axios.delete(`${apiUrl}/hr/notifications/${id}`, {
+      //   headers: {
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      // });
     setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
   }, []);
 
   const value = useMemo(() => ({

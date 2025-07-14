@@ -240,7 +240,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${apiUrl}/verify-otp`, {
+      const response = await axios.post(`${apiUrl}/signup-verify-otp`, {
         email,
         otp: otp.join(""),
         tempToken,
@@ -248,45 +248,28 @@ export default function Register() {
       });
       const { message, token, data } = response.data; // ✅ CORRECT ACCESS
       console.log(response, data, "data");
-      toast(message);
-      Cookies.set("jwtToken", token, { expires: 7 });
-      Cookies.set("userDetails", JSON.stringify(data), { expires: 7 });
-      // setShowOtp(false);
-      if (data?.attemptsLeft) setVerifyAttemptsLeft(data?.attemptsLeft ?? 0);
 
-      if (data?.remainingBlockSeconds) {
-        setLockTimer(apiData.remainingBlockSeconds ?? 0);
-      }
-      switch (data?.role) {
-        case "jobseeker":
-          setTimeout(() => navigate("/profile"), 1500);
-          break;
-        case "hr":
-          setTimeout(() => navigate("/profile"), 1500);
-          break;
-        case "admin":
-          setTimeout(() => navigate("/profile"), 1500);
-          break;
-        default:
-          setTimeout(() => navigate("/login"), 1500);
-          break;
-      }
+      // Store token and user data in cookies
+      Cookies.set("jwtToken", token, { expires: 7 }); // Set cookie to expire in 7 days
+      Cookies.set("userDetails", JSON.stringify(data), { expires: 7 }); // Set cookie to expire in 7 days
+
+      toast.success(message || "Registration successful!");
+      setShowOtp(false);
+      setLoading(false);
+      navigate("/login"); // Redirect to login after successful registration
     } catch (error) {
-      console.log(error, "error");
-      const errorData = error.response?.data;
-      toast.error(errorData?.error || "Internal Server");
-      // Wrong OTP case
-      setVerifyAttemptsLeft(errorData?.attemptsLeft ?? 0);
-      if (errorData?.remainingBlockSeconds) {
-        setLockTimer(errorData.remainingBlockSeconds ?? 0);
-        setVerifyAttemptsLeft(errorData?.attemptsLeft ?? 0);
-        setAttemptsLeft(error?.attemptsLeft ?? 0);
-      }
+      console.log(error);
+      const errData = error.response?.data || {};
+      toast.error(errData.error || "OTP verification failed.");
+      setVerifyAttemptsLeft(errData.otpVerifyAttemptsLeft || 0);
+      setLockTimer(errData.remainingBlockSeconds || 0);
+      setIsBlockTime((errData.remainingBlockSeconds || 0) > 0);
     } finally {
       setLoading(false);
     }
   };
 
+  //handle resendOtp
   const handleResendOtp = async () => {
     try {
       setLoading(true);

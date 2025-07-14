@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Settings,
 } from 'lucide-react';
+import Cookies from 'js-cookie'; // Import Cookies
 
 const SubMenuButton = ({ item, isExpanded, toggleExpand, setMobileOpen }) => {
   const hasChildren = item.children?.length > 0;
@@ -71,17 +72,53 @@ const SubMenuButton = ({ item, isExpanded, toggleExpand, setMobileOpen }) => {
   );
 };
 
-const UserAvatar = () => (
+const UserAvatar = () => {
+  const [username, setUsername] = useState('Guest');
+  const [userRole, setUserRole] = useState('Unknown Role');
+
+  useEffect(() => {
+    const fetchUserDetails = () => {
+      const userDetailsString = Cookies.get('userDetails');
+      if (userDetailsString) {
+        try {
+          const userDetails = JSON.parse(userDetailsString);
+          setUsername(userDetails.username || userDetails.name || 'Guest');
+          setUserRole(userDetails.role || 'Unknown Role');
+          //tan
+          console.log("Parsed userDetails in Sidebar:", userDetails);
+
+        } catch (e) {
+          console.error("Error parsing userDetails from cookie in UserAvatar:", e);
+        }
+      } else {
+        setUsername('Guest');
+        setUserRole('Unknown Role');
+      }
+    };
+
+    fetchUserDetails(); // Fetch initially
+
+    // Listen for custom authChange event
+    window.addEventListener('authChange', fetchUserDetails);
+
+    return () => {
+      // Clean up event listener on component unmount
+      window.removeEventListener('authChange', fetchUserDetails);
+    };
+  }, []); // Empty dependency array means this effect runs once on mount
+
+  return (
   <div className="p-6 flex flex-col items-center">
     <div className="relative mb-4">
       <div className="w-32 h-32 rounded-full bg-blue-50 flex items-center justify-center overflow-hidden border-4 border-blue-100">
         <User size={64} className="text-[#0F52BA]" />
       </div>
     </div>
-    <h2 className="text-2xl font-bold text-gray-800 text-center">Shivam Dubey</h2>
-    <p className="text-gray-500 text-sm text-center">Computer Science Student</p>
+      <h2 className="text-2xl font-bold text-gray-800 text-center">{username}</h2>
+      <p className="text-gray-500 text-sm text-center">{userRole}</p>
   </div>
 );
+};
 
 const MenuSection = ({ title, icon, basePath, subItems, isExpanded, toggleExpand, setMobileOpen }) => {
   const location = useLocation();

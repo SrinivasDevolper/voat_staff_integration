@@ -9,7 +9,7 @@ const {
 const { generateOTP, sendOTP } = require("./utils/otpHelpers.js");
 const validatePassword = require("./utils/passwordHelpers.js");
 const { upload, imageUpload } = require("./utils/multerConfig.js");
-const authRoutes = require("./routes/auth.routes.js");
+const authRoutes = require("./routes/newAuth.routes.js");
 const contactRoutes = require("./routes/contact.routes.js");
 const announcementRoutes = require("./routes/announcement.routes.js");
 const jobseekerRoutes = require("./routes/jobseeker.routes.js");
@@ -26,6 +26,13 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Add this middleware to log all incoming requests
+app.use((req, res, next) => {
+  console.log(`Incoming Request: ${req.method} ${req.url}`);
+  next();
+});
+
 app.use((err, req, res, next) => {
   if (err.name === "MulterError") {
     return res.status(400).json({ error: err.message });
@@ -40,6 +47,8 @@ app.use((err, req, res, next) => {
 });
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Serve job attachments statically
+app.use("/uploads/job_attachments", express.static(path.join(__dirname, "uploads/job_attachments")));
 const uploadDir = path.join(__dirname, "uploads");
 const announcementsDir = path.join(uploadDir, "announcements");
 const resumesDir = path.join(uploadDir, "resumes");

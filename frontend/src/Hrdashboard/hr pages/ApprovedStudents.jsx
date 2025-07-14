@@ -13,6 +13,8 @@ import {
   FileText,
   User
 } from 'lucide-react';
+import axios from 'axios'; // Import axios
+import Cookies from 'js-cookie'; // Import js-cookie
 
 export default function ApprovedStudentsSection() {
   // Mock approved student data
@@ -99,6 +101,10 @@ export default function ApprovedStudentsSection() {
   const [interviewStudentId, setInterviewStudentId] = useState(null);
   const [interviewDate, setInterviewDate] = useState('');
   const [interviewTime, setInterviewTime] = useState('');
+  const [interviewLocation, setInterviewLocation] = useState(''); // New state for location
+  const [interviewNotes, setInterviewNotes] = useState(''); // New state for notes
+  const [schedulingError, setSchedulingError] = useState(''); // New state for error messages
+  const [schedulingSuccess, setSchedulingSuccess] = useState(''); // New state for success messages
 
   // Filter approved students
   const filteredStudents = approvedStudents.filter(s => s.status === "approved");
@@ -176,25 +182,62 @@ export default function ApprovedStudentsSection() {
   };
 
   // Handle interview scheduling
-  const handleScheduleInterview = () => {
-    // Update the student's record with interview details
-    setApprovedStudents(approvedStudents.map(student => 
-      student.id === interviewStudentId 
-        ? { 
-            ...student, 
-            interviewScheduled: true, 
+  const handleScheduleInterview = async () => {
+    setSchedulingError('');
+    setSchedulingSuccess('');
+
+    if (!interviewStudentId || !interviewDate || !interviewTime || !interviewLocation) {
+      setSchedulingError("Please fill in all required interview details.");
+      return;
+    }
+
+    try {
+      const token = Cookies.get("jwtToken"); // Changed from localStorage
+      if (!token) {
+        setSchedulingError("Authentication token not found. Please log in again.");
+        return;
+      }
+
+      // Assuming interviewStudentId is the application_id
+      const response = await axios.post(
+        `/api/hr/applications/${interviewStudentId}/schedule-interview`,
+        {
             interviewDate, 
             interviewTime,
-            interviewStatus: "scheduled"
-          } 
+          interviewLocation,
+          notes: interviewNotes,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSchedulingSuccess("Interview scheduled successfully!");
+      // Update the local state for the scheduled student (if needed, otherwise fetch again)
+      setApprovedStudents(prevStudents =>
+        prevStudents.map(student =>
+          student.id === interviewStudentId
+            ? { ...student, interviewScheduled: true, interviewDate, interviewTime, interviewStatus: "scheduled" }
         : student
-    ));
+        )
+      );
+      // Optionally, refetch all approved students to ensure consistency with backend
+      // fetchApprovedStudents(); // If you had a dedicated fetch function
+
+    } catch (error) {
+      console.error("Error scheduling interview:", error);
+      setSchedulingError(error.response?.data?.error || "Failed to schedule interview. Please try again.");
+    }
     
     // Reset the dialog
     setShowInterviewDialog(false);
     setInterviewStudentId(null);
     setInterviewDate('');
     setInterviewTime('');
+    setInterviewLocation('');
+    setInterviewNotes('');
   };
 
   // Student profile view
@@ -322,6 +365,8 @@ export default function ApprovedStudentsSection() {
               onClick={() => {
                 setInterviewStudentId(selectedStudent.id);
                 setShowInterviewDialog(true);
+                setSchedulingError(''); // Clear previous errors
+                setSchedulingSuccess(''); // Clear previous success messages
               }}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium flex items-center gap-2"
             >
@@ -509,6 +554,8 @@ export default function ApprovedStudentsSection() {
                       onClick={() => {
                         setInterviewStudentId(student.id);
                         setShowInterviewDialog(true);
+                        setSchedulingError(''); // Clear previous errors
+                        setSchedulingSuccess(''); // Clear previous success messages
                       }}
                       className="
                         px-4 py-2.5
@@ -662,6 +709,8 @@ export default function ApprovedStudentsSection() {
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div className="bg-white p-6 rounded-lg max-w-md w-full border border-blue-100 shadow-xl">
       <h3 className="text-lg font-medium mb-4 text-blue-800">Schedule Interview</h3>
+            {schedulingError && <p className="text-red-500 mb-2">{schedulingError}</p>}
+            {schedulingSuccess && <p className="text-green-500 mb-2">{schedulingSuccess}</p>}
       
       <div className="space-y-4 mb-6">
         <div>
@@ -690,6 +739,27 @@ export default function ApprovedStudentsSection() {
             <option value="16:00-17:00" className="text-blue-800">04:00 PM - 05:00 PM</option>
           </select>
         </div>
+              {/* New fields for location and notes */}
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={interviewLocation}
+                  onChange={(e) => setInterviewLocation(e.target.value)}
+                  placeholder="e.g., Online (Google Meet)"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-1">Notes (Optional)</label>
+                <textarea
+                  value={interviewNotes}
+                  onChange={(e) => setInterviewNotes(e.target.value)}
+                  rows="3"
+                  placeholder="Any specific instructions or details for the interview"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 text-blue-800"
+                ></textarea>
+              </div>
       </div>
       
       <div className="flex justify-end gap-3">
@@ -697,6 +767,8 @@ export default function ApprovedStudentsSection() {
           onClick={() => {
             setShowInterviewDialog(false);
             setInterviewStudentId(null);
+                  setSchedulingError('');
+                  setSchedulingSuccess('');
           }}
           className="px-4 py-2 border border-blue-200 rounded-md text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors"
         >
@@ -704,9 +776,9 @@ export default function ApprovedStudentsSection() {
         </button>
         <button
           onClick={handleScheduleInterview}
-          disabled={!interviewDate || !interviewTime}
+                disabled={!interviewDate || !interviewTime || !interviewLocation}
           className={`px-4 py-2 rounded-md transition-colors ${
-            !interviewDate || !interviewTime
+                  !interviewDate || !interviewTime || !interviewLocation
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md'
           }`}

@@ -14,166 +14,11 @@ import {
   ChevronRight,
   ChevronLeft
 } from 'lucide-react';
+import axios from 'axios';
+import Cookies from 'js-cookie'; // Import js-cookie
 
 const AllApplicationsContent = () => {
-  const initialApplications = [
-    { 
-      id: 1, 
-      name: 'John Doe', 
-      experience: '5 years', 
-      skills: ['React', 'Node.js', 'TypeScript'], 
-      location: 'New York, NY', 
-      appliedDate: new Date('2023-04-15'),
-      email: 'john.doe@example.com',
-      phone: '(555) 123-4567',
-      portfolio: 'johndoe.dev',
-      education: 'B.S. Computer Science, MIT',
-      bio: 'Senior frontend developer with 5 years of experience building scalable web applications. Passionate about creating intuitive user interfaces and mentoring junior developers.',
-      resume: 'https://example.com/resumes/john-doe-resume.pdf',
-      projects: [
-        {
-          name: 'E-commerce Platform',
-          description: 'Built a full-featured e-commerce platform with React, Node.js, and MongoDB',
-          technologies: ['React', 'Node.js', 'MongoDB', 'Stripe API']
-        },
-        {
-          name: 'Task Management App',
-          description: 'Developed a collaborative task management application with real-time updates',
-          technologies: ['React', 'Firebase', 'Material UI']
-        }
-      ],
-      certifications: [
-        'AWS Certified Developer - Associate',
-        'Google Cloud Professional Data Engineer'
-      ]
-    },
-    { 
-      id: 2, 
-      name: 'Priya Sharma', 
-      experience: '4 years', 
-      skills: ['Java', 'Spring Boot', 'Microservices', 'AWS'], 
-      location: 'Bangalore, KA', 
-      status: 'In Review', 
-      appliedDate: new Date('2023-05-10'),
-      email: 'priya.sharma@example.com',
-      phone: '+91 98765 43210',
-      portfolio: 'priyasharma.in',
-      education: 'M.Tech Computer Science, IIT Delhi',
-      bio: 'Backend developer specializing in building scalable microservices architecture. Experience in fintech and e-commerce domains. Contributor to open-source projects.',
-      resume: 'https://example.com/resumes/priya-sharma-resume.pdf',
-      projects: [
-        {
-          name: 'Digital Banking Platform',
-          description: 'Developed core banking APIs handling 10,000+ TPS for a major Indian bank',
-          technologies: ['Java', 'Spring Boot', 'Kafka', 'PostgreSQL']
-        },
-        {
-          name: 'Payment Gateway Integration',
-          description: 'Implemented UPI and Razorpay integrations for e-commerce clients',
-          technologies: ['Java', 'REST APIs', 'AWS Lambda']
-        }
-      ],
-      certifications: [
-        'Oracle Certified Professional: Java SE 11 Developer',
-        'AWS Certified Solutions Architect'
-      ]
-    },
-    { 
-      id: 3, 
-      name: 'Rahul Patel', 
-      experience: '2 years', 
-      skills: ['Python', 'Django', 'Data Analysis', 'SQL'], 
-      location: 'Hyderabad, TS', 
-      status: 'New', 
-      appliedDate: new Date('2023-05-18'),
-      email: 'rahul.patel@example.com',
-      phone: '+91 87654 32109',
-      portfolio: 'rahulpatel.me',
-      education: 'B.E. Computer Engineering, VJTI Mumbai',
-      bio: 'Full-stack developer with strong analytical skills. Passionate about data-driven applications and clean code. Looking to grow in a product-based company.',
-      resume: 'https://example.com/resumes/rahul-patel-resume.pdf',
-      projects: [
-        {
-          name: 'Healthcare Analytics Dashboard',
-          description: 'Built a dashboard for hospital administrators to track patient metrics',
-          technologies: ['Python', 'Django', 'Chart.js', 'PostgreSQL']
-        },
-        {
-          name: 'E-learning Platform',
-          description: 'Developed core features for an online education startup',
-          technologies: ['Python', 'Django', 'JavaScript', 'Bootstrap']
-        }
-      ],
-      certifications: [
-        'Microsoft Certified: Azure Fundamentals',
-        'Python Institute PCAP'
-      ]
-    },
-    { 
-      id: 4, 
-      name: 'Ananya Gupta', 
-      experience: '6 years', 
-      skills: ['React Native', 'Flutter', 'Mobile UI/UX', 'Firebase'], 
-      location: 'Pune, MH', 
-      status: 'Interview Scheduled', 
-      appliedDate: new Date('2023-05-05'),
-      email: 'ananya.gupta@example.com',
-      phone: '+91 76543 21098',
-      portfolio: 'ananyagupta.design',
-      education: 'B.Tech IT, COEP Pune',
-      bio: 'Lead mobile developer with experience building cross-platform apps downloaded by 1M+ users. Strong focus on performance optimization and beautiful interfaces.',
-      resume: 'https://example.com/resumes/ananya-gupta-resume.pdf',
-      projects: [
-        {
-          name: 'Fitness Tracking App',
-          description: 'Built a popular health app with 500K+ downloads on Play Store',
-          technologies: ['Flutter', 'Firebase', 'Google Fit API']
-        },
-        {
-          name: 'E-commerce Mobile App',
-          // description: 'Led development of Flipzon's mobile shopping app',
-          // technologies: ['React Native', 'Redux', 'Node.js']
-        }
-      ],
-      certifications: [
-        'Google Flutter Certification',
-        'Adobe XD UI/UX Certification'
-      ]
-    },
-    { 
-      id: 5, 
-      name: 'Vikram Singh', 
-      experience: '8 years', 
-      skills: ['DevOps', 'Docker', 'Kubernetes', 'CI/CD', 'AWS'], 
-      location: 'Gurgaon, HR', 
-      status: 'Offer Extended', 
-      appliedDate: new Date('2023-04-22'),
-      email: 'vikram.singh@example.com',
-      phone: '+91 98989 98989',
-      portfolio: 'vikramsingh.tech',
-      education: 'B.Tech CSE, DTU Delhi',
-      bio: 'DevOps engineer with extensive cloud infrastructure experience. Implemented CI/CD pipelines reducing deployment time by 80%. Certified AWS and Kubernetes expert.',
-      resume: 'https://example.com/resumes/vikram-singh-resume.pdf',
-      projects: [
-        {
-          name: 'Cloud Migration Project',
-          description: 'Migrated 50+ services from on-prem to AWS with zero downtime',
-          technologies: ['AWS', 'Terraform', 'Ansible', 'Jenkins']
-        },
-        {
-          name: 'Kubernetes Cluster Optimization',
-          description: 'Reduced cloud costs by 40% through resource optimization',
-          technologies: ['Kubernetes', 'Prometheus', 'Grafana']
-        }
-      ],
-      certifications: [
-        'Certified Kubernetes Administrator (CKA)',
-        'AWS Certified DevOps Engineer - Professional'
-      ]
-    }
-  ];
-
-  const [allApplications, setAllApplications] = useState(initialApplications);
+  const [allApplications, setAllApplications] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [applicationsPerPage] = useState(3);
   const [sortedApplications, setSortedApplications] = useState([]);
@@ -182,6 +27,49 @@ const AllApplicationsContent = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [applicationToApprove, setApplicationToApprove] = useState(null);
   const [applicationOnHold, setApplicationOnHold] = useState(null);
+
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const token = Cookies.get("jwtToken"); // Changed from localStorage.getItem("tempToken") || localStorage.getItem("token")
+        if (!token) {
+          console.error("Authentication token not found.");
+          setAllApplications([]);
+          return;
+        }
+
+        const response = await axios.get('/api/hr/applications', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const fetchedApplications = response.data.map(app => ({
+          id: app.application_id,
+          name: app.jobseeker_name,
+          experience: '',
+          skills: [],
+          location: '',
+          appliedDate: new Date(app.created_at),
+          email: '',
+          phone: '',
+          portfolio: '',
+          education: '',
+          bio: '',
+          resume: app.resume_filepath,
+          projects: [],
+          certifications: [],
+          status: app.status,
+          job_title: app.job_title,
+          company: app.company
+        }));
+        setAllApplications(fetchedApplications);
+      } catch (error) {
+        console.error("Error fetching applications:", error);
+        setAllApplications([]);
+      }
+    };
+    fetchApplications();
+  }, []);
 
   const handleHold = (id) => {
     setAllApplications(allApplications.map(app => 
@@ -209,7 +97,6 @@ const AllApplicationsContent = () => {
     if (selectedApplication?.id === id) {
       setSelectedApplication(null);
     }
-    // Adjust page if needed
     if (currentApplications.length === 1 && currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
@@ -473,7 +360,6 @@ const AllApplicationsContent = () => {
           </div>
         </div>
 
-        {/* Confirmation Dialogs */}
         {applicationToApprove && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg max-w-md w-full">
@@ -556,193 +442,309 @@ const AllApplicationsContent = () => {
   } 
 
   return (
-    <div className="bg-white m-4 rounded-2xl shadow-sm">
-      <div className="space-y-5">
-        {currentApplications.length > 0 ? (
-          currentApplications.map((app) => (
-            <div key={app.id} className="p-6 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{app.name}</h3>
-                  <p className="text-xs text-gray-500">{formatDate(app.appliedDate)}</p>
-                </div>
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">All Applications</h1>
+
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700">Search</label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
               </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</p>
-                    <p className="text-sm mt-1">{app.experience}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Location</p>
-                    <p className="text-sm mt-1">{app.location}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase mx-1 tracking-wider">Skills</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {app.skills.map((skill, index) => (
-                        <span
-                          key={index}
-                          className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+              <input
+                type="text"
+                name="search"
+                id="search"
+                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                placeholder="Search applications..."
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location</label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MapPin className="h-5 w-5 text-gray-400" aria-hidden="true" />
               </div>
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
-                <button 
-                  onClick={() => setSelectedApplication(app)}
-                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  View Profile
-                </button>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setApplicationToApprove(app.id)}
-                    className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700"
-                  >
-                    Approve
-                  </button>
-                  <button 
-                    onClick={() => setApplicationToReject(app.id)}
-                    className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700"
-                  >
-                    Reject
-                  </button>
-                  <button 
-                    onClick={() => setApplicationOnHold(app.id)}
-                    className="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg hover:bg-yellow-600"
-                  >
-                    Hold
-                  </button>
-                </div>
+              <input
+                type="text"
+                name="location"
+                id="location"
+                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                placeholder="e.g., New York"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <select
+                id="status"
+                name="status"
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                defaultValue=""
+              >
+                <option value="">All</option>
+                <option value="New">New</option>
+                <option value="In Review">In Review</option>
+                <option value="Interview Scheduled">Interview Scheduled</option>
+                <option value="Offer Extended">Offer Extended</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                <option value="On Hold">On Hold</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <ChevronDown className="h-4 w-4" />
               </div>
             </div>
-          ))
-        ) : (
-          <div className="text-center py-10">
-            <p className="text-gray-500">No applications found</p>
           </div>
+          <div>
+            <label htmlFor="skills" className="block text-sm font-medium text-gray-700">Skills</label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <input
+                type="text"
+                name="skills"
+                id="skills"
+                className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="e.g., React, Node.js"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Current Applications</h2>
+        
+        {sortedApplications.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied Date</th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentApplications.map(application => (
+                  <React.Fragment key={application.id}>
+                    <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedApplication(application)}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{application.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{application.job_title}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{application.company}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          application.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                          application.status === 'In Review' || application.status === 'Interview Scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                          application.status === 'On Hold' ? 'bg-orange-100 text-orange-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {application.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(application.appliedDate)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onClick={(e) => { e.stopPropagation(); setApplicationToApprove(application); }} className="text-green-600 hover:text-green-900 mr-4">Approve</button>
+                        <button onClick={(e) => { e.stopPropagation(); setApplicationOnHold(application); }} className="text-orange-600 hover:text-orange-900 mr-4">Hold</button>
+                        <button onClick={(e) => { e.stopPropagation(); setApplicationToReject(application); }} className="text-red-600 hover:text-red-900">Reject</button>
+                      </td>
+                    </tr>
+
+                    {selectedApplication?.id === application.id && (
+                      <tr>
+                        <td colSpan="6" className="p-4 bg-gray-50">
+                          <div className="flex flex-col lg:flex-row lg:items-start lg:space-x-8">
+                            <div className="lg:w-2/3">
+                              <h3 className="text-xl font-bold text-gray-900 mb-2">{selectedApplication.name}</h3>
+                              <p className="text-gray-600 mb-4">{selectedApplication.bio}</p>
+                              
+                              <div className="mb-4">
+                                <h4 className="font-semibold text-gray-800 mb-2 flex items-center"><BriefcaseIcon size={18} className="mr-2" /> Experience</h4>
+                                <p className="text-gray-700">{selectedApplication.experience}</p>
+                              </div>
+
+                              <div className="mb-4">
+                                <h4 className="font-semibold text-gray-800 mb-2 flex items-center"><Award size={18} className="mr-2" /> Skills</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedApplication.skills.map(skill => (
+                                    <span key={skill} className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{skill}</span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="mb-4">
+                                <h4 className="font-semibold text-gray-800 mb-2 flex items-center"><GraduationCap size={18} className="mr-2" /> Education</h4>
+                                <p className="text-gray-700">{selectedApplication.education}</p>
+                              </div>
+
+                              {selectedApplication.projects && selectedApplication.projects.length > 0 && (
+                                <div className="mb-4">
+                                  <h4 className="font-semibold text-gray-800 mb-2 flex items-center"><Briefcase size={18} className="mr-2" /> Projects</h4>
+                                  {selectedApplication.projects.map((project, idx) => (
+                                    <div key={idx} className="mb-2 p-3 bg-white rounded-md shadow-sm border border-gray-100">
+                                      <p className="font-medium text-gray-800">{project.name}</p>
+                                      <p className="text-sm text-gray-600">{project.description}</p>
+                                      {project.technologies && project.technologies.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {project.technologies.map(tech => (
+                                            <span key={tech} className="bg-gray-100 text-gray-700 text-xs px-1.5 py-0.5 rounded">{tech}</span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {selectedApplication.certifications && selectedApplication.certifications.length > 0 && (
+                                <div className="mb-4">
+                                  <h4 className="font-semibold text-gray-800 mb-2 flex items-center"><Award size={18} className="mr-2" /> Certifications</h4>
+                                  <ul className="list-disc list-inside text-gray-700">
+                                    {selectedApplication.certifications.map((cert, idx) => (
+                                      <li key={idx}>{cert}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between mt-6">
+                                <button
+                                  onClick={() => setSelectedApplication(null)}
+                                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                  <ArrowLeft size={16} className="mr-2" /> Back to Applications
+                                </button>
+                                <a
+                                  href={selectedApplication.resume}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                  <FileText size={16} className="mr-2" /> View Resume
+                                </a>
+                              </div>
+                            </div>
+
+                            <div className="lg:w-1/3 mt-6 lg:mt-0 bg-white p-4 rounded-lg shadow-md">
+                              <h4 className="font-semibold text-gray-800 mb-3">Contact Info</h4>
+                              <div className="space-y-2">
+                                <p className="text-gray-700 flex items-center"><Mail size={16} className="mr-2" /> {selectedApplication.email}</p>
+                                <p className="text-gray-700 flex items-center"><Phone size={16} className="mr-2" /> {selectedApplication.phone}</p>
+                                <p className="text-gray-700 flex items-center"><Globe size={16} className="mr-2" /> <a href={`https://${selectedApplication.portfolio}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{selectedApplication.portfolio}</a></p>
+                                <p className="text-gray-700 flex items-center"><MapPin size={16} className="mr-2" /> {selectedApplication.location}</p>
+                                <p className="text-gray-700 flex items-center"><Calendar size={16} className="mr-2" /> Applied: {formatDate(selectedApplication.appliedDate)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-center text-gray-500 py-8">No applications found.</p>
+        )}
+
+        {totalPages > 1 && (
+          <nav className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6" aria-label="Pagination">
+            <div className="flex-1 flex justify-between sm:justify-end">
+              <button
+                onClick={prevPage}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} className="mr-2" /> Previous
+              </button>
+              <button
+                onClick={nextPage}
+                disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next <ChevronRight size={16} className="ml-2" />
+              </button>
+            </div>
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{indexOfFirstApplication + 1}</span> to <span className="font-medium">{Math.min(indexOfLastApplication, sortedApplications.length)}</span> of{" "}<span className="font-medium">{sortedApplications.length}</span> results
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  {getPageNumbers().map(number => (
+                    <button
+                      key={number}
+                      onClick={() => paginate(number)}
+                      aria-current={currentPage === number ? 'page' : undefined}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        currentPage === number
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      } rounded-md`}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
+          </nav>
         )}
       </div>
-      
-      {sortedApplications.length > 0 && (
-        <div className="mt-10 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-sm text-gray-500">
-            Showing <span className="font-medium">{indexOfFirstApplication + 1}</span> -{' '}
-            <span className="font-medium">
-              {Math.min(indexOfLastApplication, sortedApplications.length)}
-            </span> of <span className="font-medium">{sortedApplications.length}</span> applications
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              className={`px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center gap-1 ${
-                currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-              onClick={prevPage}
-              disabled={currentPage === 1}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Previous
-            </button>
-            
-            <div className="flex items-center gap-1">
-              {getPageNumbers().map((number, index) => (
-                number === '...' ? (
-                  <span key={index} className="px-2">...</span>
-                ) : (
-                  <button
-                    key={index}
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-medium ${
-                      number === currentPage
-                        ? 'bg-blue-600 text-white'
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                    onClick={() => paginate(number)}
-                  >
-                    {number}
-                  </button>
-                )
-              ))}
-            </div>
-            
-            <button 
-              className={`px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center gap-1 ${
-                currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-              onClick={nextPage}
-              disabled={currentPage === totalPages}
-            >
-              Next
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Dialogs */}
-      {applicationToApprove && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
-            <h3 className="text-lg font-medium mb-4">Confirm Approval</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to approve this application?</p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setApplicationToApprove(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  handleApprove(applicationToApprove);
-                  setApplicationToApprove(null);
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-              >
-                Confirm Approve
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {applicationToReject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
-            <h3 className="text-lg font-medium mb-4">Confirm Rejection</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to reject this application?</p>
-            <div className="flex justify-end gap-3">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+          <div className="p-8 border w-96 shadow-lg rounded-md bg-white text-center">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Reject Application</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to reject {applicationToReject.name}'s application?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => handleReject(applicationToReject.id)}
+                className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Reject
+              </button>
               <button
                 onClick={() => setApplicationToReject(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {applicationToApprove && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+          <div className="p-8 border w-96 shadow-lg rounded-md bg-white text-center">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Approve Application</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to approve {applicationToApprove.name}'s application?
+            </p>
+            <div className="flex justify-center gap-4">
               <button
-                onClick={() => {
-                  handleReject(applicationToReject);
-                  setApplicationToReject(null);
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                onClick={() => handleApprove(applicationToApprove.id)}
+                className="px-4 py-2 bg-green-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
-                Confirm Reject
+                Approve
+              </button>
+              <button
+                onClick={() => setApplicationToApprove(null)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
               </button>
             </div>
           </div>
@@ -750,25 +752,24 @@ const AllApplicationsContent = () => {
       )}
 
       {applicationOnHold && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
-            <h3 className="text-lg font-medium mb-4">Confirm Hold</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to put this application on hold?</p>
-            <div className="flex justify-end gap-3">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+          <div className="p-8 border w-96 shadow-lg rounded-md bg-white text-center">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Put Application on Hold</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to put {applicationOnHold.name}'s application on hold?
+            </p>
+            <div className="flex justify-center gap-4">
               <button
-                onClick={() => setApplicationOnHold(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                onClick={() => handleHold(applicationOnHold.id)}
+                className="px-4 py-2 bg-orange-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
               >
-                Cancel
+                Put on Hold
               </button>
               <button
-                onClick={() => {
-                  handleHold(applicationOnHold);
-                  setApplicationOnHold(null);
-                }}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                onClick={() => setApplicationOnHold(null)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
               >
-                Confirm Hold
+                Cancel
               </button>
             </div>
           </div>

@@ -35,34 +35,36 @@ export default function OTPLogin() {
   const inputRefs = useRef([]);
   const navigate = useNavigate();
   useEffect(() => {
+    //  const token = localStorage.getItem("token");
+    //  const userDetails = localStorage.getItem("userDetails");
     const token = Cookies.get("jwtToken");
     const userDetails = Cookies.get("userDetails");
-
-    if (token && userDetails) {
-      try {
-        const user = JSON.parse(userDetails);
-        switch (user.role) {
-          case "jobseeker":
-            navigate("/profile");
-            break;
-          case "hr":
-            navigate("/hr");
-            break;
-          case "admin":
-            navigate("/admin");
-            break;
-          case "superadmin":
-            navigate("/superadmin");
-            break;
-          default:
-            navigate("/");
-        }
-      } catch (err) {
-        console.error("Invalid userDetails cookie:", err);
-        // Cookies.remove("jwtToken");
-        // Cookies.remove("userDetails");
-      }
-    }
+    
+     if (token && userDetails) {
+       try {
+         const user = JSON.parse(userDetails);
+         switch (user.role) {
+           case "jobseeker":
+             navigate("/profile");
+             break;
+           case "hr":
+             navigate("/hire/hrprofile", { replace: true });
+             break;
+           case "admin":
+             navigate("/admin");
+             break;
+           case "superadmin":
+             navigate("/superadmin");
+             break;
+           default:
+             navigate("/");
+         }
+       } catch (err) {
+         console.error("Invalid userDetails cookie:", err);
+         Cookies.remove("jwtToken");
+         Cookies.remove("userDetails");
+       }
+     }
   }, [navigate]);
 
   useEffect(() => {
@@ -169,7 +171,7 @@ export default function OTPLogin() {
     setIsBlocked(false);
 
     try {
-      const res = await axios.post(`${apiUrl}/login-verify`, {
+      const res = await axios.post(`${apiUrl}/login-verify`, { // Changed endpoint from /verify-otp
         email,
         otp: enteredOtp,
         type: "login",
@@ -188,9 +190,13 @@ export default function OTPLogin() {
         passwordAttemptsLeft,
       } = res.data;
       console.log("res", res);
-      // ✅ Success: update hooks and redirect
+      console.log("Debug: Login.jsx - User data for cookie (OTP):", user);
+
       Cookies.set("jwtToken", token, { expires: 7 });
-      Cookies.set("userDetails", JSON.stringify(res.data.data), { expires: 7 });
+      Cookies.set("userDetails", JSON.stringify(user), { expires: 7 }); // Changed to use 'user' instead of 'res.data.data'
+
+      // Dispatch a custom event to notify other components of auth change
+      window.dispatchEvent(new Event('authChange'));
 
       setErrorMsg("");
       setOtp(Array(6).fill(""));
@@ -199,12 +205,14 @@ export default function OTPLogin() {
       setAttemptsLeftLogin(passwordAttemptsLeft || 0);
       setFreezeTimerLogin(0); // reset timer
 
+      showToast("success", res.data.message || "Login successful!");
+
       switch (user.role) {
         case "jobseeker":
           navigate("/profile");
           break;
         case "hr":
-          navigate("/hr");
+          navigate("/hire/hrprofile", { replace: true });
           break;
         case "admin":
           navigate("/admin");
@@ -215,31 +223,19 @@ export default function OTPLogin() {
         default:
           navigate("/");
       }
-    } catch (err) {
-      console.log(err, "err");
-      const {
-        error,
-        remainingBlockSeconds,
-        otpAttemptsLeft,
-        otpVerifyAttemptsLeft,
-        passwordAttemptsLeft,
-      } = err?.response?.data || {};
-      console.log(remainingBlockSeconds, "remainingBlockSeconds");
-      if (remainingBlockSeconds > 0) {
-        setFreezeTimerLogin(remainingBlockSeconds);
-        setIsBlocked((remainingBlockSeconds || 0) > 0); // ✅ correct
+    } catch (error) {
+      const errData = error.response?.data || {};
+      console.log(error, "error");
+      setErrorMsg(errData.error || "OTP verification failed");
+      setOtpAttemptsLeft(errData.otpVerifyAttemptsLeft || 0); // Update remaining OTP attempts
+      setFreezeTimerLogin(errData.remainingBlockSeconds || 0); // Update freeze timer
+      setIsBlocked((errData.remainingBlockSeconds || 0) > 0); // Update blocked status
+      if (errData.remainingBlockSeconds > 0) {
+        showToast(
+          "error",
+          `Account blocked. Try again in ${errData.remainingBlockSeconds} seconds.`
+        );
       }
-      if (typeof otpAttemptsLeft === "number") {
-        setAttemptsLeftOTP(otpAttemptsLeft);
-      }
-      if (typeof otpVerifyAttemptsLeft === "number") {
-        setOtpAttemptsLeft(otpVerifyAttemptsLeft);
-      }
-      if (typeof passwordAttemptsLeft === "number") {
-        setAttemptsLeftLogin(passwordAttemptsLeft);
-      }
-
-      setErrorMsg(error || "OTP verification failed.");
     } finally {
       setOtpLoading(false);
     }
@@ -263,25 +259,30 @@ export default function OTPLogin() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${apiUrl}/login-password`, {
+      const res = await axios.post(`${apiUrl}/login`, {
         email,
         password,
       });
       console.log(res, "res");
 
       const { token, data } = res.data;
+      console.log("Debug: Login.jsx - User data for cookie (Traditional):", data);
 
       Cookies.set("jwtToken", token, { expires: 7 });
       Cookies.set("userDetails", JSON.stringify(data), { expires: 7 });
+      //added by tan
+      window.dispatchEvent(new Event("authChange"));
       setFreezeTimerLogin(0);
       setIsBlocked(false);
 
-      switch (data.role) {
+      // Explicitly navigate after successful login and token storage
+      const userRole = data.role; // Get role from the response data
+      switch (userRole) {
         case "jobseeker":
           navigate("/profile");
           break;
         case "hr":
-          navigate("/hr");
+          navigate("/hire/hrprofile", { replace: true });
           break;
         case "admin":
           navigate("/admin");
@@ -291,7 +292,6 @@ export default function OTPLogin() {
           break;
         default:
           navigate("/");
-          break;
       }
     } catch (error) {
       const errData = error.response?.data || {};

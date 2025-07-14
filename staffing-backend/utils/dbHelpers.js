@@ -636,6 +636,65 @@ async function findUpcomingNotifications(userId) {
   return upcomingNotifications;
 }
 
+async function findHrProfileByUserId(userId) {
+  const [rows] = await pool.execute(
+    `SELECT
+            u.id AS userId,
+            u.username,
+            u.email,
+            u.role,
+            u.verified,
+            u.voat_id,
+            hp.company,
+            hp.experience,
+            hp.basic_details AS basicDetails,
+            hp.contact_person AS contactPerson,
+            hp.contact_email AS contactEmail
+        FROM
+            users u
+        LEFT JOIN
+            hr_profiles hp ON u.id = hp.user_id
+        WHERE
+            u.id = ? AND u.role = 'hr'`,
+    [userId]
+  );
+  return rows[0];
+}
+
+async function createHrProfile(userId, profileData) {
+  const fields = ["user_id"];
+  const placeholders = ["?"];
+  const values = [userId];
+
+  for (const key in profileData) {
+    fields.push(`\`${key}\``);
+    placeholders.push("?");
+    values.push(profileData[key]);
+  }
+
+  const [result] = await pool.execute(
+    `INSERT INTO hr_profiles (${fields.join(", ")}) VALUES (${placeholders.join(", ")})`,
+    values
+  );
+  return { id: result.insertId };
+}
+
+async function updateHrProfile(userId, updates) {
+  const fields = [];
+  const values = [];
+  for (const key in updates) {
+    fields.push(`\`${key}\` = ?`);
+    values.push(updates[key]);
+  }
+  if (fields.length === 0) return;
+
+  values.push(userId);
+  await pool.execute(
+    `UPDATE hr_profiles SET ${fields.join(", ")} WHERE user_id = ?`,
+    values
+  );
+}
+
 module.exports = {
   findUserByEmail,
   findUserByResetToken,
@@ -655,8 +714,8 @@ module.exports = {
   deletePendingSignup,
   findJobseekerProfileByUserId,
   updateJobseekerProfile,
-  updateJobseekerResumePath,
   getJobseekerResumePathByUserId,
+  updateJobseekerResumePath,
   findMaxVoatIdSuffix,
   findJobs,
   findJobById,
@@ -671,4 +730,7 @@ module.exports = {
   markAllNotificationsRead,
   deleteNotificationById,
   findUpcomingNotifications,
+  findHrProfileByUserId,
+  createHrProfile,
+  updateHrProfile,
 };

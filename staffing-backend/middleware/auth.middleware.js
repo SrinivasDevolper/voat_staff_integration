@@ -3,6 +3,7 @@ console.log('Backend JWT_SECRET (from auth.middleware):', process.env.JWT_SECRET
 
 // JWT authentication middleware
 const authenticateJWT = (req, res, next) => {
+  console.log('Debug: auth.middleware - JWT_SECRET used for verification:', process.env.JWT_SECRET);
   const authHeader = req.headers.authorization;
   console.log("authHeader", authHeader);
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -18,8 +19,10 @@ const authenticateJWT = (req, res, next) => {
     // console.log('Decoded JWT payload (req.user):', req.user);
     next();
   } catch (err) {
+    console.error('JWT verification failed:', err.message); // 👈 Add this
     return res.status(403).json({ message: "Invalid or expired token" });
   }
+  
 };
 
-module.exports = authenticateJWT;
+module.exports = authenticateJWT; 

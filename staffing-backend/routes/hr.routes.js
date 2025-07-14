@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const hrController = require("../controllers/hr.controller");
 const protect = require("../middleware/auth.middleware");
+const { upload, uploadJobAttachment } = require("../utils/multerConfig");
 
 // HR Profile Management Routes
 router.get("/profile", protect, hrController.getProfile);
@@ -19,11 +20,11 @@ router.patch("/hr/notifications/mark-all-read", protect, hrController.markAllNot
 router.post("/applications/:applicationId/schedule-interview", protect, hrController.scheduleInterview);
 
 // HR Job Management Routes
-router.post("/jobs", protect, hrController.createJob);
-router.get("/jobs", protect, hrController.getAllJobs);
-router.get("/jobs/:jobId", protect, hrController.getJobById);
-router.put("/jobs/:jobId", protect, hrController.updateJob);
-router.delete("/jobs/:jobId", protect, hrController.deleteJob);
+router.post("/hr/jobs", protect, uploadJobAttachment.single('attachment'), hrController.createJob);
+router.get("/hr/jobs", protect, hrController.getAllJobs);
+router.get("/hr/jobs/:jobId", protect, hrController.getJobById);
+router.put("/hr/jobs/:jobId", protect, uploadJobAttachment.single('attachment'), hrController.updateJob);
+router.delete("/hr/jobs/:jobId", protect, hrController.deleteJob);
 
 // HR Job Application Management Routes
 router.get("/applications", protect, hrController.getAllApplications);
@@ -32,5 +33,8 @@ router.put("/applications/:applicationId/status", protect, hrController.updateAp
 
 // HR Jobseeker Management Routes
 router.get("/jobseekers/:jobseekerId/profile", protect, hrController.getJobseekerProfile);
+
+// Quick Hire Routes
+router.post("/hr/quick-hire/process-poster", protect, uploadJobAttachment.single('poster'), hrController.processJobPoster);
 
 module.exports = router; 

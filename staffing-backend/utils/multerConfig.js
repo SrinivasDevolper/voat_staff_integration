@@ -9,7 +9,20 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     cb(
       null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
+      `resume-${Date.now()}${path.extname(file.originalname)}`
+    );
+  },
+});
+
+// Multer storage configuration for job attachments
+const jobAttachmentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/job_attachments/"); // New directory for job attachments
+  },
+  filename: (req, file, cb) => {
+    cb(
+      null,
+      `job-${Date.now()}${path.extname(file.originalname)}` // Prefix for job attachments
     );
   },
 });
@@ -39,10 +52,37 @@ const resumeFileFilter = (req, file, cb) => {
   }
 };
 
+// Centralized file filter for job attachments (PDF, DOCX, JPG, PNG - Max 5MB)
+const jobAttachmentFileFilter = (req, file, cb) => {
+  const allowedMimeTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "image/jpeg",
+    "image/jpg",
+    "image/png"
+  ];
+  const allowedExtensions = [".pdf", ".doc", ".docx", ".jpeg", ".jpg", ".png"];
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only PDF, DOC, DOCX, JPG, and PNG files are allowed."), false);
+  }
+};
+
 // Multer upload middleware for resumes (PDF, DOC, DOCX, 5MB limit)
 const upload = multer({
   storage,
   fileFilter: resumeFileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+// Multer upload middleware for job attachments
+const uploadJobAttachment = multer({
+  storage: jobAttachmentStorage,
+  fileFilter: jobAttachmentFileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
@@ -57,5 +97,6 @@ const imageUpload = multer({
 
 module.exports = {
   upload,
-  imageUpload
+  imageUpload,
+  uploadJobAttachment // Export the new middleware
 }; 

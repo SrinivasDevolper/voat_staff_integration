@@ -58,7 +58,7 @@ const CustomCursor = () => {
       // Determine cursor type based on element
       const target = e.target;
       const tagName = target.tagName.toLowerCase();
-      const className = target.className || '';
+      const className = String(target.className || '');
       const id = target.id || '';
       
       // Check for specific website elements
