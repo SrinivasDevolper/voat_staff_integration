@@ -1,23 +1,17 @@
 import { MessageCircle, Settings, User } from "lucide-react";
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { navItems } from "../header/Header";
 import Cookies from "js-cookie";
-import { apiUrl } from "../../../utilits/apiUrl";
-import { UserDetailsContext } from "../../contexts/UserDetailsContext";
-import toast from "react-hot-toast";
-import axios from "axios";
 
 const DesktopSidebarContent = () => {
   const pathname = useLocation();
   const [currentPath, setCurrentPath] = useState(pathname.pathname);
-  const { username, setUserName, userBio, setUserBio } =
-    useContext(UserDetailsContext);
+
   useEffect(() => {
     setCurrentPath(pathname.pathname);
   }, [pathname]);
-  // const [username, setUsername] = useState("");
-  // const [userbio, setUserbio] = useState("");
+
   return (
     <>
       <div className="p-6 flex flex-col items-center">
@@ -27,9 +21,11 @@ const DesktopSidebarContent = () => {
           </div>
         </div>
         <h2 className="text-2xl font-semibold text-gray-800 text-center">
-          {username}
+          {JSON.parse(Cookies.get("userDetails")).name.toUpperCase()}
         </h2>
-        <p className="text-gray-500 text-sm text-center">{userBio}</p>
+        <p className="text-gray-500 text-sm text-center">
+          Computer Science Student
+        </p>
       </div>
 
       <nav className="flex-1 overflow-y-auto pb-6 px-4">

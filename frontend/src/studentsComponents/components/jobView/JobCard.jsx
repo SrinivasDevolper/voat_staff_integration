@@ -13,8 +13,16 @@ const JobCard = ({ job, onCheckEligibility }) => {
   const [expanded, setExpanded] = useState(false);
 
   const statusStyles = {
-    applied: { bg: "bg-yellow-200", text: "text-yellow-900", label: "• Applied" },
-    hiring: { bg: "bg-green-200", text: "text-green-900", label: "• Hiring Done" },
+    applied: {
+      bg: "bg-yellow-200",
+      text: "text-yellow-900",
+      label: "• Applied",
+    },
+    hiring: {
+      bg: "bg-green-200",
+      text: "text-green-900",
+      label: "• Hiring Done",
+    },
     previous: { bg: "bg-gray-200", text: "text-gray-900", label: "• Previous" },
   };
 
@@ -36,17 +44,32 @@ const JobCard = ({ job, onCheckEligibility }) => {
       { icon: <MapPin size={16} />, text: job.location },
       { icon: <Clock size={16} />, text: job.salary },
       job.status === "applied"
-        ? { icon: <Briefcase size={16} />, text: `${job.title.split(" ")[0]} Role` }
-        : { icon: <Users size={16} />, text: `${job.openings} opening${job.openings !== 1 ? "s" : ""}` },
-      job.status !== "applied" && { icon: <Calendar size={16} />, text: job.date },
+        ? {
+            icon: <Briefcase size={16} />,
+            text: `${job.title.split(" ")[0]} Role`,
+          }
+        : {
+            icon: <Users size={16} />,
+            text: `${job.openings} opening${job.openings !== 1 ? "s" : ""}`,
+          },
+      job.status !== "applied" && {
+        icon: <Calendar size={16} />,
+        text: new Date(job.appliedDate).toISOString().split("T")[0],
+      },
     ].filter(Boolean);
 
-    const columns = job.status === "applied" ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4";
+    const columns =
+      job.status === "applied"
+        ? "sm:grid-cols-2 lg:grid-cols-3"
+        : "sm:grid-cols-2 lg:grid-cols-4";
 
     return (
       <div className={`grid grid-cols-1 ${columns} gap-2 sm:gap-4 mt-2`}>
         {infoItems.map((item, i) => (
-          <div key={i} className="flex items-center gap-2 text-gray-700 text-sm sm:text-base">
+          <div
+            key={i}
+            className="flex items-center gap-2 text-gray-700 text-sm sm:text-base"
+          >
             {item.icon}
             <span>{item.text}</span>
           </div>
@@ -62,8 +85,12 @@ const JobCard = ({ job, onCheckEligibility }) => {
 
         <div className="mb-2">
           {/* <div className="text-gray-400 text-xs mb-1">{job.id}</div> */}
-          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 pr-20">{job.title}</h3>
-          <p className="text-sm text-blue-700 font-medium mb-2">{job.company}</p>
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 pr-20">
+            {job.title}
+          </h3>
+          <p className="text-sm text-blue-700 font-medium mb-2">
+            {job.company}
+          </p>
           <div className="max-h-[150px] overflow-y-auto custom-scrollbar pr-3">
             {renderDetails()}
           </div>
@@ -77,13 +104,13 @@ const JobCard = ({ job, onCheckEligibility }) => {
                   {job.eligibility || "No eligibility criteria specified"}
                 </p>
               </div>
-              
+
               <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200 shadow-sm">
                 <h4 className="font-semibold text-sm sm:text-base mb-2 text-gray-800">
                   Required Skills
                 </h4>
                 <div className="text-gray-600 text-sm sm:text-base leading-relaxed whitespace-pre-line">
-                  {job.requiredSkills || "No specific skills required"}
+                  {job.skills || "No specific skills required"}
                 </div>
               </div>
             </div>
@@ -98,7 +125,11 @@ const JobCard = ({ job, onCheckEligibility }) => {
             }}
             className="text-blue-600 text-sm font-medium flex items-center gap-1 hover:underline"
           >
-            {expanded ? "View Less" : job.status === "applied" ? "View Application" : "View Details"}
+            {expanded
+              ? "View Less"
+              : job.status === "applied"
+              ? "View Application"
+              : "View Details"}
             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         </div>

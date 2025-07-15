@@ -8,12 +8,9 @@ const authorize = require("../middleware/role.middleware");
 const jobseekerAuth = [authenticateJWT, authorize(["jobseeker"])];
 
 router.get("/profile", ...jobseekerAuth, jobseekerController.getProfile);
-router.patch(
-  "/profile",
-  ...jobseekerAuth,
-  jobseekerController.upload.single("resume"),
-  jobseekerController.updateProfile
-);
+
+router.patch("/profile", ...jobseekerAuth, jobseekerController.updateProfile);
+
 router.post(
   "/profile/resume",
   ...jobseekerAuth,
@@ -50,9 +47,14 @@ router.get(
 );
 router.post("/jobs/apply", ...jobseekerAuth, jobseekerController.applyJob);
 router.get(
-  "/jobs/applied",
+  "/jobs/applied/status",
   ...jobseekerAuth,
-  jobseekerController.getAppliedJobs
+  jobseekerController.getStatusAppliedJobs
+);
+router.get(
+  "/jobs/applied/:id",
+  ...jobseekerAuth,
+  jobseekerController.getAppliedJobById
 );
 router.get("/jobs", ...jobseekerAuth, jobseekerController.getJobs);
 router.get("/jobs/:id", ...jobseekerAuth, jobseekerController.getJobById);

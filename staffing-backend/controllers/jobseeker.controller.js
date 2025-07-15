@@ -10,6 +10,7 @@ const {
   findJobs,
   findJobById,
   findAppliedJobs,
+  findAppliedJobsByStatus,
   checkJobExists,
   findExistingApplication,
   createJobApplication,
@@ -59,76 +60,45 @@ const getProfile = async (req, res) => {
 const uploadResume = async (req, res) => {
   try {
     if (!req.file) {
-      console.log("Debug: uploadResume - No file provided in request.");
       return res
         .status(400)
         .json({ error: { code: 400, message: "No resume file provided." } });
     }
 
-    const newResumeFilename = req.file.filename;
-    const newResume_filepath = `/uploads/resumes/${newResumeFilename}`;
-    console.log(
-      "Debug: uploadResume - New resume filename:",
-      newResumeFilename
-    );
-    console.log(
-      "Debug: uploadResume - New resume filepath (relative to root):",
-      newResume_filepath
-    );
+    const userId = req.user.id;
+    const newFilename = req.file.filename;
+    const newRelativePath = `/resumes/${newFilename}`;
 
-    // Get the old resume path to delete it if it exists
-    const oldResume_filepath = await getJobseekerResumePathByUserId(
-      req.user.id
-    );
-    console.log(
-      "Debug: uploadResume - Old resume filepath from DB:",
-      oldResume_filepath
-    );
+    const oldPath = await getJobseekerResumePathByUserId(userId);
+    await updateJobseekerResumePath(userId, newRelativePath);
 
-    // Update the jobseeker's resume_filepath in the database
-    await updateJobseekerResumePath(req.user.id, newResume_filepath);
-    console.log(
-      "Debug: uploadResume - Database updated for user_id:",
-      req.user.id,
-      "with new path:",
-      newResume_filepath
-    );
-
-    // If an old resume existed, delete it from the filesystem after successful database update
-    if (oldResume_filepath) {
-      const oldFilePath = path.join(__dirname, "..", oldResume_filepath);
-      console.log(
-        "Debug: uploadResume - Attempting to delete old file at:",
-        oldFilePath
+    if (oldPath) {
+      const absoluteOldPath = path.join(
+        __dirname,
+        "..",
+        "uploads",
+        "resumes",
+        path.basename(oldPath)
       );
-      if (fs.existsSync(oldFilePath)) {
-        fs.unlink(oldFilePath, (err) => {
-          if (err) console.error("Error deleting old resume file:", err);
-          else
-            console.log(
-              "Debug: uploadResume - Successfully deleted old resume file."
-            );
-        });
-      } else {
-        console.log(
-          "Debug: uploadResume - Old resume file did not exist at expected path:",
-          oldFilePath
-        );
+      if (fs.existsSync(absoluteOldPath)) {
+        try {
+          await fs.promises.unlink(absoluteOldPath);
+          console.log("Old resume deleted.");
+        } catch (err) {
+          console.error("Failed to delete old resume:", err);
+        }
       }
     }
 
     res.json({
       message: "Resume uploaded successfully.",
-      resumeUrl: newResume_filepath,
+      resumeUrl: newRelativePath,
     });
   } catch (error) {
     console.error("Error uploading resume:", error);
-    res.status(500).json({
-      error: {
-        code: 500,
-        message: "Failed to upload resume. Please try again.",
-      },
-    });
+    res
+      .status(500)
+      .json({ error: { code: 500, message: "Failed to upload resume." } });
   }
 };
 
@@ -152,7 +122,7 @@ const getResume = async (req, res) => {
         error: { code: 404, message: "Resume not found for this jobseeker." },
       });
     }
-    const newResume_filepath = `/uploads/resumes/${resumeRelativePath}`;
+    const newResume_filepath = `/resumes/${path.basename(resumeRelativePath)}`;
     // Instead of serving the file, return the URL path
     res.json({ resumeUrl: newResume_filepath });
   } catch (error) {
@@ -163,179 +133,85 @@ const getResume = async (req, res) => {
   }
 };
 
-// PUT /jobseeker/api/profile
+// Patch /jobseeker/api/profile
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log(userId, "userId");
-    const profileUpdates = req.body;
-    console.log(profileUpdates, "profileUpdated");
+    const {
+      name,
+      phone,
+      gender,
+      address,
+      skills,
+      whatsapp,
+      bio,
+      parentDetails = {},
+    } = req.body;
+
+    console.log(req.body, "reqBody");
 
     const errors = [];
 
-    // Input validation (simplified, as dbHelper handles data distribution)
-    if (
-      profileUpdates.username !== undefined &&
-      (typeof profileUpdates.username !== "string" ||
-        profileUpdates.username.length > 255)
-    ) {
-      errors.push("Name must be a string and less than 255 characters.");
-    }
-    if (
-      profileUpdates.phone !== undefined &&
-      (typeof profileUpdates.phone !== "string" ||
-        !validator.isMobilePhone(profileUpdates.phone, "any"))
-    ) {
-      errors.push("Phone must be a valid mobile number.");
-    }
-    if (
-      profileUpdates.gender !== undefined &&
-      (typeof profileUpdates.gender !== "string" ||
-        !["Male", "Female", "Other", "Prefer not to say"].includes(
-          profileUpdates.gender
-        ))
-    ) {
-      errors.push(
-        "Gender must be 'Male', 'Female', 'Other', or 'Prefer not to say'."
-      );
-    }
-    if (
-      profileUpdates.address !== undefined &&
-      (typeof profileUpdates.address !== "string" ||
-        profileUpdates.address.length > 1000)
-    ) {
-      errors.push("Address must be a string and less than 1000 characters.");
-    }
-    if (
-      profileUpdates.whatsapp !== undefined &&
-      (typeof profileUpdates.whatsapp !== "string" ||
-        !validator.isMobilePhone(profileUpdates.whatsapp, "any"))
-    ) {
-      errors.push("Whatsapp must be a valid mobile number.");
-    }
-    if (
-      profileUpdates.bio !== undefined &&
-      (typeof profileUpdates.bio !== "string" ||
-        profileUpdates.bio.length > 1000)
-    ) {
-      errors.push("Bio must be a string and less than 1000 characters.");
-    }
-    if (
-      profileUpdates.portfolio !== undefined &&
-      (typeof profileUpdates.portfolio !== "string" ||
-        !validator.isURL(profileUpdates.portfolio) ||
-        profileUpdates.portfolio.length > 500)
-    ) {
-      errors.push(
-        "Portfolio must be a valid URL and less than 500 characters."
-      );
-    }
-    if (
-      profileUpdates.education !== undefined &&
-      (typeof profileUpdates.education !== "string" ||
-        profileUpdates.education.length > 1000)
-    ) {
-      errors.push("Education must be a string and less than 1000 characters.");
-    }
-    if (
-      profileUpdates.experience_years !== undefined &&
-      (typeof profileUpdates.experience_years !== "number" ||
-        profileUpdates.experience_years < 0 ||
-        profileUpdates.experience_years > 99)
-    ) {
-      errors.push(
-        "Experience years must be a non-negative number and less than 100."
-      );
+    // --- Conditional validations ---
+    if (name && (typeof name !== "string" || name.length > 255)) {
+      errors.push("Name must be a string under 255 characters.");
     }
 
-    // Validation for JSON fields (skills, projects, certifications)
-    if (profileUpdates.skills !== undefined) {
-      if (
-        !Array.isArray(profileUpdates.skills) ||
-        profileUpdates.skills.some(
-          (s) => typeof s !== "string" || s.length > 50
-        )
-      ) {
-        errors.push(
-          "Skills must be an array of strings, each less than 50 characters."
-        );
-      }
-    }
-    if (profileUpdates.projects !== undefined) {
-      if (
-        !Array.isArray(profileUpdates.projects) ||
-        profileUpdates.projects.some(
-          (p) =>
-            typeof p !== "object" ||
-            p === null ||
-            !p.title ||
-            typeof p.title !== "string" ||
-            p.title.length > 255
-        )
-      ) {
-        errors.push(
-          "Projects must be an array of objects with a title (string, max 255 chars)."
-        );
-      }
-    }
-    if (profileUpdates.certifications !== undefined) {
-      if (
-        !Array.isArray(profileUpdates.certifications) ||
-        profileUpdates.certifications.some(
-          (c) =>
-            typeof c !== "object" ||
-            c === null ||
-            !c.name ||
-            typeof c.name !== "string" ||
-            c.name.length > 255
-        )
-      ) {
-        errors.push(
-          "Certifications must be an array of objects with a name (string, max 255 chars)."
-        );
+    if (typeof phone === "string" && phone.trim() !== "") {
+      if (!validator.isMobilePhone(phone, "any")) {
+        errors.push("Invalid phone number.");
       }
     }
 
-    // Validation for parentDetails object
-    if (profileUpdates.parentDetails !== undefined) {
-      if (
-        typeof profileUpdates.parentDetails !== "object" ||
-        profileUpdates.parentDetails === null
-      ) {
-        errors.push("Parent details must be an object.");
-      } else {
-        if (
-          profileUpdates.parentDetails.name !== undefined &&
-          (typeof profileUpdates.parentDetails.name !== "string" ||
-            profileUpdates.parentDetails.name.length > 255)
-        ) {
-          errors.push(
-            "Parent name must be a string and less than 255 characters."
-          );
-        }
-        if (
-          profileUpdates.parentDetails.phone !== undefined &&
-          (typeof profileUpdates.parentDetails.phone !== "string" ||
-            !validator.isMobilePhone(profileUpdates.parentDetails.phone, "any"))
-        ) {
-          errors.push("Parent phone must be a valid mobile number.");
-        }
-        if (
-          profileUpdates.parentDetails.relation !== undefined &&
-          (typeof profileUpdates.parentDetails.relation !== "string" ||
-            profileUpdates.parentDetails.relation.length > 50)
-        ) {
-          errors.push(
-            "Parent relation must be a string and less than 50 characters."
-          );
-        }
-        if (
-          profileUpdates.parentDetails.email !== undefined &&
-          (typeof profileUpdates.parentDetails.email !== "string" ||
-            !validator.isEmail(profileUpdates.parentDetails.email))
-        ) {
-          errors.push("Parent email must be a valid email address.");
-        }
+    if (
+      gender &&
+      !["Male", "Female", "Other", "Prefer not to say"].includes(gender)
+    ) {
+      errors.push("Invalid gender value.");
+    }
+
+    if (address && address.length > 1000) {
+      errors.push("Address must be under 1000 characters.");
+    }
+
+    if (typeof whatsapp === "string" && whatsapp.trim() !== "") {
+      if (!validator.isMobilePhone(whatsapp, "any")) {
+        errors.push("Invalid WhatsApp number.");
+      }
+    }
+
+    if (bio && bio.length > 1000) {
+      errors.push("About must be under 1000 characters.");
+    }
+
+    if (skills && (typeof skills !== "string" || skills.length > 500)) {
+      errors.push(
+        "Skills must be a comma-separated string under 500 characters."
+      );
+    }
+
+    // --- Parent Details validation ---
+    const {
+      name: parentName,
+      phone: parentPhone,
+      relation,
+      email: parentEmail,
+    } = parentDetails;
+
+    if (parentName && parentName.length > 255) {
+      errors.push("Parent name too long.");
+    }
+    if (typeof parentPhone === "string" && parentPhone.trim() !== "") {
+      if (!validator.isMobilePhone(parentPhone, "any")) {
+        errors.push("Invalid parent phone.");
+      }
+    }
+    if (relation && relation.length > 50) {
+      errors.push("Parent relation too long.");
+    }
+    if (typeof parentEmail === "string" && parentEmail.trim() !== "") {
+      if (!validator.isEmail(parentEmail)) {
+        errors.push("Invalid parent email.");
       }
     }
 
@@ -343,19 +219,38 @@ const updateProfile = async (req, res) => {
       return res.status(400).json({ errors });
     }
 
-    // Pass the updates directly to the helper function
+    // --- Cleaned update payload ---
+    const profileUpdates = {
+      ...(name && { name }),
+      ...(phone && phone.trim() !== "" && { phone }),
+      ...(gender && { gender }),
+      ...(address && { address }),
+      ...(skills && { skills }),
+      ...(whatsapp && whatsapp.trim() !== "" && { whatsapp }),
+      ...(bio && { bio }),
+      ...(parentDetails && {
+        parentDetails: {
+          ...(parentName && { name: parentName }),
+          ...(parentPhone &&
+            parentPhone.trim() !== "" && { phone: parentPhone }),
+          ...(relation && { relation }),
+          ...(parentEmail &&
+            parentEmail.trim() !== "" && { email: parentEmail }),
+        },
+      }),
+    };
+
     await updateJobseekerProfile(userId, profileUpdates);
 
-    // Fetch the updated profile to return the latest state
     const updatedProfile = await findJobseekerProfileByUserId(userId);
 
-    res.json({
+    return res.json({
       message: "Profile updated successfully.",
       profile: updatedProfile,
     });
   } catch (error) {
-    console.error("Error updating job seeker profile:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ error: "Internal server error." });
   }
 };
 
@@ -374,6 +269,8 @@ const getJobs = async (req, res) => {
       maxSalary,
       employmentType,
     } = req.query;
+
+    console.log(req.query, "req.query");
 
     // Pass all query parameters to the centralized helper function
     const { jobs, totalJobs, totalPages, currentPage } = await findJobs({
@@ -427,7 +324,7 @@ const getJobById = async (req, res) => {
 
     // Use the helper function to fetch the job
     const job = await findJobById(jobId); // Use findJobById
-
+    console.log(job, "job");
     if (!job) {
       return res
         .status(404)
@@ -447,35 +344,69 @@ const getJobById = async (req, res) => {
 };
 
 // GET /jobseeker/api/jobs/applied
-const getAppliedJobs = async (req, res) => {
+const getStatusAppliedJobs = async (req, res) => {
   try {
     const { status } = req.query;
     const jobseekerId = req.user.id;
-
-    // Validate status parameter if provided
+    console.log(status, "status");
     const allowedStatuses = [
       "Applied",
       "Reviewed",
       "Interviewed",
       "Rejected",
       "Hired",
-    ]; // Define your allowed statuses
+    ];
     if (status && !allowedStatuses.includes(status)) {
       return res.status(400).json({
         error: {
           code: 400,
-          message: `Invalid status parameter. Allowed values are: ${allowedStatuses.join(
-            ", "
-          )}.`,
+          message: `Invalid status. Allowed: ${allowedStatuses.join(", ")}.`,
         },
       });
     }
 
-    const appliedJobs = await findAppliedJobs(jobseekerId, status);
+    const appliedJobs = await findAppliedJobsByStatus(jobseekerId, status);
     res.json({ appliedJobs });
   } catch (error) {
-    console.error("Error fetching applied jobs:", error);
+    console.error("Error fetching applied jobs by status:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getAppliedJobById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const jobseekerId = req.user.id;
+    console.log(id, jobseekerId, "IJ");
+    if (!id) {
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: "Job ID is required in URL",
+        },
+      });
+    }
+
+    const job = await findAppliedJobs(jobseekerId, id); // Custom helper
+    console.log(job, "Job");
+    if (!job) {
+      return res.status(404).json({
+        error: {
+          code: 404,
+          message: "No job application found for this ID",
+        },
+      });
+    }
+
+    res.status(200).json({ job });
+  } catch (error) {
+    console.error("Error fetching applied job:", error);
+    res.status(500).json({
+      error: {
+        code: 500,
+        message: "Failed to fetch applied job",
+      },
+    });
   }
 };
 
@@ -755,7 +686,8 @@ module.exports = {
   getProfile,
   updateProfile,
   getJobs,
-  getAppliedJobs,
+  getStatusAppliedJobs,
+  getAppliedJobById,
   applyJob,
   getSchedule,
   getNotifications,

@@ -1,0 +1,15 @@
+2) HR: curreny Symbol
+1) I did search bar like suggestions comes by ascending order.
+
+Got it. You want progressive prioritization based on input character position matching across suggestions.
+
+🔥 Your Desired Behavior:
+If user types "h":
+
+Show suggestions where the first letter starts with h (e.g., Hyderabad) → rank 1
+
+Then suggestions where the second letter is h (e.g., Chennai) → rank 2
+
+Then third-letter h, and so on.
+
+It’s not traditional alphabetical sort — you’re ranking by how early the match occurs in the string.

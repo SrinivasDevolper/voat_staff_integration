@@ -1,16 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { navItems } from "../header/Header";
+import Cookies from "js-cookie";
+import { apiUrl } from "../../../utilits/apiUrl";
+import { UserDetailsContext } from "../../contexts/UserDetailsContext";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 const MobileSidebarContent = ({ setSidebarOpen }) => {
   const pathname = useLocation();
   const [currentPath, setCurrentPath] = useState(pathname.pathname);
-
+  const { username, setUserName, userBio, setUserBio } =
+    useContext(UserDetailsContext);
   useEffect(() => {
     setCurrentPath(pathname.pathname);
   }, [pathname]);
-
   return (
     <>
       <div className="p-4 flex flex-col items-center">
@@ -20,11 +25,9 @@ const MobileSidebarContent = ({ setSidebarOpen }) => {
           </div>
         </div>
         <h2 className="text-xl font-semibold text-gray-800 text-center">
-          Shivam Dubey
+          {username}
         </h2>
-        <p className="text-gray-500 text-xs text-center">
-          Computer Science Student
-        </p>
+        <p className="text-gray-500 text-xs text-center">{userBio}</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto pb-6 px-4">
@@ -37,13 +40,19 @@ const MobileSidebarContent = ({ setSidebarOpen }) => {
                   setSidebarOpen(false);
                 }}
                 className={`w-full flex items-center justify-between py-3 px-4 rounded-lg transition-all duration-200 ease-in-out hover:scale-105 ${
-                  currentPath === item.path 
-                    ? 'bg-[#0F52BA] text-white shadow-md' 
-                    : 'bg-blue-50 text-[#0F52BA] hover:bg-blue-100 hover:shadow-md'
+                  currentPath === item.path
+                    ? "bg-[#0F52BA] text-white shadow-md"
+                    : "bg-blue-50 text-[#0F52BA] hover:bg-blue-100 hover:shadow-md"
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={currentPath === item.path ? 'text-white' : 'text-[#0F52BA]'}>
+                  <div
+                    className={
+                      currentPath === item.path
+                        ? "text-white"
+                        : "text-[#0F52BA]"
+                    }
+                  >
                     {item.icon}
                   </div>
                   <span className="font-medium">{item.label}</span>

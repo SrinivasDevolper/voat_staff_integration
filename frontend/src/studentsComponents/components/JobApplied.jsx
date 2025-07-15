@@ -3,8 +3,10 @@ import { Briefcase } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useUserJobContext } from "../contexts/UserJobContext";
 import JobCard from "./jobView/JobCard";
+import Cookies from "js-cookie";
 
 import Header from "./header/Header";
+import { apiUrl } from "../../utilits/apiUrl";
 
 const jobsData = [
   {
@@ -50,10 +52,10 @@ const jobsData = [
 ];
 
 const JobApplied = () => {
-  const { appliedJobs } = useUserJobContext();
-  const [activeTab, setActiveTab] = useState("applied");
+  const [activeTab, setActiveTab] = useState("Applied");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [visibleJobs, setVisibleJobs] = useState([]);
+  const [appliedJobs, setAppliedJobs] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -66,18 +68,20 @@ const JobApplied = () => {
   useEffect(() => {
     let jobsToShow = [];
     switch (activeTab) {
-      case "applied":
+      case "Applied":
         // Set status for all applied jobs
-        jobsToShow = appliedJobs.map(job => ({
+        jobsToShow = appliedJobs.map((job) => ({
           ...job,
-          status: "applied"  // Add status for applied jobs
+          status: "Applied", // Add status for applied jobs
         }));
         break;
-      case "hiring":
-        jobsToShow = jobsData.filter(job => job.status === "hiring").map(job => ({
-          ...job,
-          status: "hiring"  // Make sure hiring jobs have status
-        }));
+      case "Hired":
+        jobsToShow = jobsData
+          .filter((job) => job.status === "Hired")
+          .map((job) => ({
+            ...job,
+            status: "Hired", // Make sure hiring jobs have status
+          }));
         break;
       // case "previous":
       //   jobsToShow = jobsData.filter(job => job.status === "previous");
@@ -93,10 +97,43 @@ const JobApplied = () => {
   };
 
   const tabs = [
-    { id: "applied", label: "Applied" },
-    { id: "hiring", label: "Hiring Done" },
+    { id: "Applied", label: "Applied" },
+    { id: "Hired", label: "Hired" },
     // { id: "previous", label: "Previous Jobs" },
   ];
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      const token = Cookies.get("jwtToken");
+      try {
+        const response = await fetch(
+          `${apiUrl}/jobseeker/jobs/applied/status?status=${activeTab}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+        console.log(data, "data");
+        if (!response.ok) {
+          throw new Error(
+            data?.error?.message || "Failed to fetch applied jobs"
+          );
+        }
+
+        setAppliedJobs(data.appliedJobs || []);
+        setVisibleJobs(data.appliedJobs || []);
+      } catch (err) {
+        console.error("Error fetching applied jobs:", err.message);
+        setAppliedJobs([]);
+        setVisibleJobs([]);
+      }
+    };
+    loadJobs();
+  }, [activeTab]);
 
   return (
     <div className="flex">
@@ -142,7 +179,7 @@ const JobApplied = () => {
                     </div>
                   ) : (
                     <div className="text-center py-6 sm:py-8">
-                      {activeTab === "applied" ? (
+                      {activeTab === "Applied" ? (
                         <div className="flex flex-col items-center">
                           <Briefcase
                             size={isMobile ? 36 : 48}

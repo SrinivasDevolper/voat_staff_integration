@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { FileText, Upload, X, Edit2, Check } from "lucide-react";
 import Header from "./header/Header";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import { apiUrl } from "../../utilits/apiUrl";
 import Cookies from "js-cookie";
+import { UserDetailsContext } from "../contexts/UserDetailsContext";
 
 export default function StudentProfile() {
   const navigate = useNavigate();
@@ -14,25 +15,27 @@ export default function StudentProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isParentEditing, setIsParentEditing] = useState(false);
   const [isEmailEditing, setIsEmailEditing] = useState(false);
+  const { username, setUserName, userBio, setUserBio } =
+    useContext(UserDetailsContext);
 
+  console.log(username, "username");
   const initialStudentDetails = {
-    name: "Shivam Dubey",
-    email: "shivam.dubey@example.com",
-    password: "********",
-    phone: "+91 9876543210",
-    gender: "Male",
-    address: "123 Main Street, Mumbai, India",
-    skills: "React, JavaScript, TypeScript, Node.js",
-    whatsapp: "+91 9876543210",
-    about:
-      "I am a passionate computer science student with a keen interest in web development and software engineering.",
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    gender: "",
+    address: "",
+    skills: "",
+    whatsapp: "",
+    about: "",
   };
 
   const initialParentDetails = {
-    name: "Rajesh Dubey",
-    phone: "+91 9876543211",
-    relation: "Father",
-    email: "rajesh.dubey@example.com",
+    name: "",
+    phone: "",
+    relation: "",
+    email: "",
   };
 
   const [studentDetails, setStudentDetails] = useState(initialStudentDetails);
@@ -72,11 +75,14 @@ export default function StudentProfile() {
         }));
 
         setParentDetails({
-          name: data.parentDetails_name,
-          phone: data.parentDetails_phone,
-          relation: data.parentDetails_relation,
-          email: data.parentDetails_email,
+          name: data?.parentDetails?.name,
+          phone: data?.parentDetails?.phone,
+          relation: data?.parentDetails?.relation,
+          email: data?.parentDetails?.email,
         });
+
+        setUserName(data.username);
+        setUserBio(data.bio);
         // if (data?.resume_filepath) {
         //   setResumePreview(data?.resume_filepath);
         //   setResumeFile({ name: data.resume_filepath });
@@ -100,25 +106,18 @@ export default function StudentProfile() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log(res, "res");
-
         const { resumeUrl } = res.data;
-        console.log(resumeUrl, "resumeUrl");
         if (!resumeUrl) throw new Error("Resume URL missing");
 
         const fileName = resumeUrl.split("/").pop();
-        console.log(fileName, "fileName");
-        const fullResumePath = `uploads/resumes/${fileName}`;
-
-        console.log("Resume File:", fullResumePath);
-        setResumePreview(fullResumePath);
-        setResumeFile({ name: fileName });
+        console.log(resumeUrl, "resumeUrl");
+        setResumePreview(`${apiUrl}${resumeUrl}`); // Show PDF
+        setResumeFile({ name: fileName }); // Show name below
       } catch (error) {
         console.error("Resume fetch failed:", error);
         toast.error("Resume not found or failed to load.");
       }
     };
-
     fetchResume();
   }, []);
 
@@ -193,34 +192,168 @@ export default function StudentProfile() {
     }
   };
 
-  const handleResumeUpload = (e) => {
+  const handleResumeUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setResumeFile(file);
-      const previewURL = URL.createObjectURL(file);
-      setResumePreview(previewURL);
+    if (!file) return;
 
-      if (errors.resume) {
-        setErrors((prev) => ({ ...prev, resume: "" }));
-      }
+    setResumeFile(file);
+    setResumePreview(URL.createObjectURL(file));
+    if (errors.resume) {
+      setErrors((prev) => ({ ...prev, resume: "" }));
+    }
+
+    try {
+      const token = Cookies.get("jwtToken");
+      if (!token) throw new Error("Missing auth token.");
+
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      const res = await axios.post(
+        `${apiUrl}/jobseeker/profile/resume`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const { resumeUrl, message } = res.data;
+      setResumePreview(`${apiUrl}${resumeUrl}`);
+      toast.success(message || "Resume uploaded successfully.");
+    } catch (err) {
+      console.error("Resume upload error:", err);
+      toast.error("Failed to upload resume. Please try again.");
     }
   };
 
-  const handleSubmit = (e) => {
+  const studentUpdate = async (e) => {
     e.preventDefault();
-    setIsSubmitting(!isSubmitting);
-    if (isSubmitting === true) {
-      if (validateForm()) {
-        console.log("Student Details:", studentDetails);
-        console.log("Parent Details:", parentDetails);
-        console.log("Resume File:", resumeFile);
-        toast.success("Profile updated successfully!");
+    console.log(isEditing, "isSubmitting");
+    // if (isSubmitting === false) return;
+    if (isEditing === true) {
+      // if (validateForm()) {
+      //   console.log("Student Details:", studentDetails);
+      // }
+      try {
+        const token = Cookies.get("jwtToken");
+
+        // Utility to convert "null", null, or undefined to empty string
+        const sanitize = (val) =>
+          val === "null" || val === null || val === undefined ? "" : val;
+
+        const payload = {
+          username: sanitize(studentDetails.name),
+          phone: sanitize(studentDetails.phone),
+          gender: sanitize(studentDetails.gender),
+          address: sanitize(studentDetails.address),
+          whatsapp: sanitize(studentDetails.whatsapp),
+          bio: sanitize(studentDetails.about),
+          portfolio: sanitize(studentDetails.portfolio),
+          education: sanitize(studentDetails.education),
+          experience_years: parseInt(studentDetails.experienceYears || "0", 10),
+          skills: sanitize(studentDetails.skills),
+          parentDetails: {
+            name: sanitize(parentDetails.name),
+            phone: sanitize(parentDetails.phone),
+            relation: sanitize(parentDetails.relation),
+            email: sanitize(parentDetails.email),
+          },
+        };
+
+        const response = await axios.patch(
+          `${apiUrl}/jobseeker/profile`,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        setUserName(response?.data?.profile?.username);
+        setUserBio(response?.data?.profile?.bio);
+
+        console.log("✅ Updated Profile:", response.data.profile);
         setIsEditing(false);
-        setIsParentEditing(false);
-        setIsEmailEditing(false);
+        toast.success("Profile updated successfully!");
+      } catch (err) {
+        console.error("❌ Profile update failed:", err);
+        setIsEditing(false);
+        toast.error(
+          err?.response?.data?.errors?.[0] || "Failed to update profile."
+        );
       }
     } else {
-      setIsSubmitting(false);
+      setIsEditing(false);
+      // setIsSubmitting(false);
+      setIsSubmitting(!isSubmitting);
+      console.log(isSubmitting, "isSubmitting");
+    }
+  };
+
+  const parentUpdate = async (e) => {
+    e.preventDefault();
+    console.log(isParentEditing, "isSubmitting");
+    if (isParentEditing === true) {
+      // if (validateForm()) {
+      //   console.log("Student Details:", studentDetails);
+      // }
+      try {
+        const token = Cookies.get("jwtToken");
+
+        // Utility to convert "null", null, or undefined to empty string
+        const sanitize = (val) =>
+          val === "null" || val === null || val === undefined ? "" : val;
+
+        const payload = {
+          username: sanitize(studentDetails.name),
+          phone: sanitize(studentDetails.phone),
+          gender: sanitize(studentDetails.gender),
+          address: sanitize(studentDetails.address),
+          whatsapp: sanitize(studentDetails.whatsapp),
+          bio: sanitize(studentDetails.about),
+          portfolio: sanitize(studentDetails.portfolio),
+          education: sanitize(studentDetails.education),
+          experience_years: parseInt(studentDetails.experienceYears || "0", 10),
+          skills: sanitize(studentDetails.skills),
+          parentDetails: {
+            name: sanitize(parentDetails.name),
+            phone: sanitize(parentDetails.phone),
+            relation: sanitize(parentDetails.relation),
+            email: sanitize(parentDetails.email),
+          },
+        };
+
+        const response = await axios.patch(
+          `${apiUrl}/jobseeker/profile`,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        console.log("✅ Updated Profile:", response.data.profile);
+        setIsParentEditing(false);
+        toast.success("Profile updated successfully!");
+      } catch (err) {
+        console.error("❌ Profile update failed:", err);
+        setIsParentEditing(false);
+        toast.error(
+          err?.response?.data?.errors?.[0] || "Failed to update profile."
+        );
+      }
+    } else {
+      setIsEditing(false);
+      // setIsSubmitting(false);
+      setIsSubmitting(!isSubmitting);
+      console.log(isSubmitting, "isSubmitting");
     }
   };
 
@@ -355,56 +488,6 @@ export default function StudentProfile() {
     );
   };
 
-  const studentUpdate = async (e) => {
-    e.preventDefault();
-    // if (!validateForm()) return;
-
-    setIsSubmitting(true);
-    try {
-      const token = Cookies.get("jwtToken");
-      const formData = new FormData();
-
-      // Append student and parent fields
-      formData.append("username", studentDetails.name);
-      formData.append("email", studentDetails.email);
-      formData.append("phone", studentDetails.phone);
-      formData.append("gender", studentDetails.gender);
-      formData.append("address", studentDetails.address);
-      formData.append("skills", studentDetails.skills);
-      formData.append("whatsapp", studentDetails.whatsapp);
-      formData.append("bio", studentDetails.about);
-      formData.append("parent_name", parentDetails.name);
-      formData.append("parent_phone", parentDetails.phone);
-      formData.append("parent_relation", parentDetails.relation);
-      formData.append("parent_email", parentDetails.email);
-      formData.append("resume_filepath", resumeFile);
-
-      // Append resume if changed
-      // if (resumeFile && resumeFile instanceof File) {
-      //   formData.append("resume", resumeFile);
-      // }
-
-      const res = await axios.patch(`${apiUrl}/jobseeker/profile`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log(res, "res");
-
-      toast.success("Profile updated successfully!");
-      setIsEditing(false);
-      // setIsParentEditing(false);
-      // setIsEmailEditing(false);
-    } catch (err) {
-      console.error("Update failed:", err);
-      toast.error("Failed to update profile.");
-    } finally {
-      setIsEditing(false);
-    }
-  };
-
   return (
     <div className="flex">
       <Header />
@@ -412,7 +495,7 @@ export default function StudentProfile() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md">
             <form
-              onSubmit={handleSubmit}
+              onSubmit={(event) => event.preventDefault()}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && e.target.type !== "textarea") {
                   e.preventDefault();
@@ -609,7 +692,7 @@ export default function StudentProfile() {
 
                   {isParentEditing ? (
                     <button
-                      onClick={() => setIsParentEditing(!isParentEditing)}
+                      onClick={parentUpdate}
                       className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm"
                     >
                       <Check size={16} />

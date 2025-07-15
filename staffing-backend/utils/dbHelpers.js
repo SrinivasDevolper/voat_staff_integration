@@ -269,7 +269,14 @@ async function updateJobseekerProfile(userId, profileUpdates) {
   const jobseekerUpdates = {};
   const parentDetailsUpdates = {};
 
-  // Define which fields belong to which table
+  const sanitize = (val) =>
+    val === undefined
+      ? null
+      : Array.isArray(val) || typeof val === "object"
+      ? JSON.stringify(val)
+      : val;
+
+  // Define field mapping
   const userFields = ["name", "phone", "gender", "address", "whatsapp"];
   const jobseekerFields = [
     "bio",
@@ -281,34 +288,29 @@ async function updateJobseekerProfile(userId, profileUpdates) {
     "certifications",
   ];
 
+  // Split data
   for (const key in profileUpdates) {
+    const value = sanitize(profileUpdates[key]);
     if (userFields.includes(key)) {
-      userUpdates[key] = profileUpdates[key];
+      userUpdates[key] = value;
     } else if (jobseekerFields.includes(key)) {
-      // Convert JSON fields to string if they are arrays/objects
-      if (["skills", "projects", "certifications"].includes(key)) {
-        jobseekerUpdates[key] = JSON.stringify(profileUpdates[key]);
-      } else {
-        jobseekerUpdates[key] = profileUpdates[key];
-      }
-    } else if (key === "parentDetails") {
-      // Handle parentDetails separately
-      parentDetailsUpdates.parent_name = profileUpdates.parentDetails.name;
-      parentDetailsUpdates.parent_phone = profileUpdates.parentDetails.phone;
-      parentDetailsUpdates.parent_relation =
-        profileUpdates.parentDetails.relation;
-      parentDetailsUpdates.parent_email = profileUpdates.parentDetails.email;
+      jobseekerUpdates[key] = value;
+    } else if (
+      key === "parentDetails" &&
+      typeof profileUpdates[key] === "object"
+    ) {
+      const parent = profileUpdates[key];
+      parentDetailsUpdates.parent_name = sanitize(parent.name);
+      parentDetailsUpdates.parent_phone = sanitize(parent.phone);
+      parentDetailsUpdates.parent_relation = sanitize(parent.relation);
+      parentDetailsUpdates.parent_email = sanitize(parent.email);
     }
   }
 
-  // Perform updates only if there are fields to update for each table
+  // Update `users` table
   if (Object.keys(userUpdates).length > 0) {
-    const fields = [];
-    const values = [];
-    for (const key in userUpdates) {
-      fields.push(`\`${key}\` = ?`);
-      values.push(userUpdates[key]);
-    }
+    const fields = Object.keys(userUpdates).map((k) => `\`${k}\` = ?`);
+    const values = Object.values(userUpdates);
     values.push(userId);
     await pool.execute(
       `UPDATE users SET ${fields.join(", ")} WHERE id = ?`,
@@ -316,17 +318,18 @@ async function updateJobseekerProfile(userId, profileUpdates) {
     );
   }
 
+  // Merge jobseeker and parent details
   const finalJobseekerUpdates = {
     ...jobseekerUpdates,
     ...parentDetailsUpdates,
   };
+
+  // Update `jobseeker` table
   if (Object.keys(finalJobseekerUpdates).length > 0) {
-    const fields = [];
-    const values = [];
-    for (const key in finalJobseekerUpdates) {
-      fields.push(`\`${key}\` = ?`);
-      values.push(finalJobseekerUpdates[key]);
-    }
+    const fields = Object.keys(finalJobseekerUpdates).map(
+      (k) => `\`${k}\` = ?`
+    );
+    const values = Object.values(finalJobseekerUpdates);
     values.push(userId);
     await pool.execute(
       `UPDATE jobseeker SET ${fields.join(", ")} WHERE user_id = ?`,
@@ -334,7 +337,7 @@ async function updateJobseekerProfile(userId, profileUpdates) {
     );
   }
 
-  return true; // Indicate success
+  return true;
 }
 
 async function getJobseekerResumePathByUserId(userId) {
@@ -458,7 +461,7 @@ async function findJobById(jobId) {
   return jobs[0];
 }
 
-async function findAppliedJobs(jobseekerId, status) {
+async function findAppliedJobsByStatus(jobseekerId, status) {
   let query = `
     SELECT
       ja.application_id,
@@ -475,7 +478,8 @@ async function findAppliedJobs(jobseekerId, status) {
       j.work_mode,
       j.type,
       j.is_urgent AS isUrgent,
-      j.is_new AS isNew
+      j.is_new AS isNew,
+      j.skills
     FROM job_applications ja
     JOIN jobs j ON ja.job_id = j.id
     WHERE ja.jobseeker_id = ?`;
@@ -488,6 +492,36 @@ async function findAppliedJobs(jobseekerId, status) {
 
   const [appliedJobs] = await pool.execute(query, params);
   return appliedJobs;
+}
+
+async function findAppliedJobs(jobseekerId, applicationId = null) {
+  const baseQuery = `
+    SELECT
+      ja.application_id AS applicationId,
+      j.id AS jobId,
+      j.title,
+      j.company,
+      j.location,
+      CONCAT(j.currency, j.min_salary, ' - ', j.currency, j.max_salary) AS salary,
+      j.openings,
+      ja.application_date AS appliedDate,
+      ja.status,
+      j.eligibility,
+      j.description,
+      j.work_mode AS workMode,
+      j.type AS employmentType,
+      j.is_urgent AS isUrgent,
+      j.is_new AS isNew
+    FROM job_applications ja
+    INNER JOIN jobs j ON ja.job_id = j.id
+    WHERE ja.jobseeker_id = ?
+    ${applicationId ? "AND ja.application_id = ?" : ""}
+  `;
+
+  const params = applicationId ? [jobseekerId, applicationId] : [jobseekerId];
+
+  const [results] = await pool.execute(baseQuery, params);
+  return applicationId ? results[0] : results;
 }
 
 async function checkJobExists(jobId) {
@@ -661,6 +695,7 @@ module.exports = {
   findJobs,
   findJobById,
   findAppliedJobs,
+  findAppliedJobsByStatus,
   checkJobExists,
   findExistingApplication,
   createJobApplication,

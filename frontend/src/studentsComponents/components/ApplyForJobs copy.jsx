@@ -10,10 +10,12 @@ import {
   Briefcase,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-// import { mockJobs } from "../../utilits/mockJobs";
+import { mockJobs } from "../../utilits/mockJobs";
 import { useUserJobContext } from "../contexts/UserJobContext";
 import ViewJob from "./sideBar/Viewjob";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiUrl } from "../../utilits/apiUrl";
+import Cookies from "js-cookie";
 
 function ApplyForJobs() {
   const navigate = useNavigate();
@@ -45,8 +47,6 @@ function ApplyForJobs() {
     getDaysAgo,
     selectedJob,
     setSelectedJob,
-    setJobsPerPage,
-    jobsPerPage,
   } = useUserJobContext();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +58,7 @@ function ApplyForJobs() {
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const searchRef = useRef(null);
 
-  // const JOBS_PER_PAGE = 10;
+  const JOBS_PER_PAGE = 10;
 
   // Handle window resize
   useEffect(() => {
@@ -76,7 +76,7 @@ function ApplyForJobs() {
       setDatePosted("All");
       setUrgentOnly(false);
       setActiveFilters([]);
-      setCurrentPage(currentPage);
+      setCurrentPage(1);
       setSelectedJob(null);
     };
 
@@ -106,7 +106,56 @@ function ApplyForJobs() {
   //   loadJobs();
   // }, [setJobs, setFilteredJobs]);
 
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        setIsLoading(true);
+        const token = Cookies.get("jwtToken");
+        const params = {
+          q: searchRole || "",
+          experienceLevel: searchExperience || "",
+          location: searchLocation || "",
+          datePosted,
+          isUrgent: urgentOnly,
+          page: currentPage,
+          limit: JOBS_PER_PAGE,
+        };
+
+        const queryString = new URLSearchParams(params).toString();
+        const options = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        };
+        const res = await fetch(
+          `${apiUrl}/jobseeker/jobs?${queryString}`,
+          options
+        );
+        const data = await res.json();
+        console.log(data, "data");
+        console.log(data.jobs, "enrichedJobs");
+        setJobs(data.jobs);
+        setFilteredJobs(data.jobs);
+      } catch (error) {
+        console.error("Error fetching jobs from backend:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadJobs();
+  }, [
+    searchRole,
+    searchExperience,
+    searchLocation,
+    datePosted,
+    urgentOnly,
+    currentPage,
+  ]);
+
   // Filter jobs based on search criteria
+
   useEffect(() => {
     try {
       if (!jobs) return;
@@ -122,7 +171,7 @@ function ApplyForJobs() {
             job?.company?.toLowerCase().includes(searchTerm)
         );
       }
-
+      // shivam, once join the meet again it's small thing I observed
       // Filter by experience
       if (searchExperience) {
         results = results.filter((job) =>
@@ -159,11 +208,11 @@ function ApplyForJobs() {
 
       // Filter urgent jobs
       if (urgentOnly) {
-        results = results.filter((job) => job?.is_urgent);
+        results = results.filter((job) => job?.isUrgent);
       }
 
-      // setFilteredJobs(results);
-      setCurrentPage(currentPage);
+      setFilteredJobs(results);
+      setCurrentPage(1);
     } catch (error) {
       console.error("Error filtering jobs:", error);
     }
@@ -174,8 +223,8 @@ function ApplyForJobs() {
     searchLocation,
     datePosted,
     urgentOnly,
-    currentPage,
-    filteredJobs,
+    setFilteredJobs,
+    setCurrentPage,
   ]);
 
   // Common locations in India
@@ -233,22 +282,10 @@ function ApplyForJobs() {
     setSearchLocation(value);
 
     if (value.trim()) {
-      const filteredSuggestions = Array.from(
-        new Set(filteredJobs.flatMap((job) => [job.location, job.workMode]))
-      )
-        .filter(Boolean)
-        .filter((text) => text.toLowerCase().includes(value.toLowerCase()))
-        .sort((a, b) => {
-          const aIndex = a.toLowerCase().indexOf(value.toLowerCase());
-          const bIndex = b.toLowerCase().indexOf(value.toLowerCase());
-
-          // earlier match comes first
-          if (aIndex !== bIndex) return aIndex - bIndex;
-          return 0;
-        });
-
-      console.log(filteredSuggestions, "filteredSuggestions");
-      setLocationSuggestions(filteredSuggestions);
+      const filtered = commonLocations.filter((location) =>
+        location.toLowerCase().includes(value.toLowerCase())
+      );
+      setLocationSuggestions(filtered);
       setShowSuggestions(true);
     } else {
       setLocationSuggestions([]);
@@ -262,58 +299,57 @@ function ApplyForJobs() {
   };
 
   // Common job titles and roles
-  const commonJobs = [
-    "Software Engineer",
-    "Frontend Developer",
-    "Backend Developer",
-    "Full Stack Developer",
-    "React Developer",
-    "Node.js Developer",
-    "Python Developer",
-    "Java Developer",
-    "DevOps Engineer",
-    "Data Scientist",
-    "Machine Learning Engineer",
-    "UI/UX Designer",
-    "Product Manager",
-    "Project Manager",
-    "Business Analyst",
-    "Quality Assurance",
-    "Mobile Developer",
-    "iOS Developer",
-    "Android Developer",
-    "Cloud Engineer",
-    "System Administrator",
-    "Network Engineer",
-    "Security Engineer",
-    "Database Administrator",
-    "Technical Lead",
-    "Solution Architect",
-    "Scrum Master",
-    "Agile Coach",
-  ];
+  // const commonJobs = [
+  //   "Software Engineer",
+  //   "Frontend Developer",
+  //   "Backend Developer",
+  //   "Full Stack Developer",
+  //   "React Developer",
+  //   "Node.js Developer",
+  //   "Python Developer",
+  //   "Java Developer",
+  //   "DevOps Engineer",
+  //   "Data Scientist",
+  //   "Machine Learning Engineer",
+  //   "UI/UX Designer",
+  //   "Product Manager",
+  //   "Project Manager",
+  //   "Business Analyst",
+  //   "Quality Assurance",
+  //   "Mobile Developer",
+  //   "iOS Developer",
+  //   "Android Developer",
+  //   "Cloud Engineer",
+  //   "System Administrator",
+  //   "Network Engineer",
+  //   "Security Engineer",
+  //   "Database Administrator",
+  //   "Technical Lead",
+  //   "Solution Architect",
+  //   "Scrum Master",
+  //   "Agile Coach",
+  // ];
 
   const handleJobSearch = (e) => {
     const value = e.target.value;
     setSearchRole(value);
 
     if (value.trim()) {
-      const filteredSuggestions = Array.from(
-        new Set(filteredJobs.flatMap((job) => [job.title, job.company]))
-      )
-        .filter(Boolean)
-        .filter((text) => text.toLowerCase().includes(value.toLowerCase()))
+      // const filtered = jobs.filter((job) =>
+      //   job.toLowerCase().includes(value.toLowerCase())
+      // );
+      const filtered = jobs
+        .filter(
+          (job) =>
+            job.title.toLowerCase().includes(value.toLowerCase()) ||
+            job.company.toLowerCase().includes(value.toLowerCase())
+        )
         .sort((a, b) => {
-          const aIndex = a.toLowerCase().indexOf(value.toLowerCase());
-          const bIndex = b.toLowerCase().indexOf(value.toLowerCase());
-
-          // earlier match comes first
-          if (aIndex !== bIndex) return aIndex - bIndex;
-          return 0;
+          const aText = `${a.title} ${a.company}`.toLowerCase();
+          const bText = `${b.title} ${b.company}`.toLowerCase();
+          return aText.localeCompare(bText);
         });
-
-      console.log(filteredSuggestions, "filteredSuggestions");
-      setJobSuggestions(filteredSuggestions);
+      setJobSuggestions(filtered);
       setShowJobSuggestions(true);
     } else {
       setJobSuggestions([]);
@@ -380,14 +416,13 @@ function ApplyForJobs() {
   };
 
   // Pagination
-  const indexOfLastJob = currentPage * jobsPerPage;
-  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
-  // const currentJobs = (filteredJobs || []).slice(
-  //   indexOfFirstJob,
-  //   indexOfLastJob
-  // );
-  const currentJobs = filteredJobs || [];
-  const { totalPages } = useUserJobContext();
+  const indexOfLastJob = currentPage * JOBS_PER_PAGE;
+  const indexOfFirstJob = indexOfLastJob - JOBS_PER_PAGE;
+  const currentJobs = (filteredJobs || []).slice(
+    indexOfFirstJob,
+    indexOfLastJob
+  );
+  const totalPages = Math.ceil((filteredJobs || []).length / JOBS_PER_PAGE);
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -452,19 +487,17 @@ function ApplyForJobs() {
                   </button>
                 )}
                 {showJobSuggestions && jobSuggestions.length > 0 && (
-                  <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-md max-h-60 overflow-y-auto">
-                    {jobSuggestions.map((suggestion, index) => (
-                      <li
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {jobSuggestions.map((job, index) => (
+                      <div
                         key={index}
-                        onClick={() => handleJobSelect(suggestion)}
-                        className="px-4 py-2 text-sm text-gray-800 cursor-pointer hover:bg-blue-100 transition-colors duration-150"
-                        role="option"
-                        aria-selected={false}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        onClick={() => handleJobSelect(job)}
                       >
-                        {suggestion}
-                      </li>
+                        {job}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </div>
 
@@ -494,16 +527,14 @@ function ApplyForJobs() {
                 )}
                 {showSuggestions && locationSuggestions.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {locationSuggestions.map((suggestion, index) => (
-                      <li
+                    {locationSuggestions.map((location, index) => (
+                      <div
                         key={index}
-                        onClick={() => handleLocationSelect(suggestion)}
-                        className="px-4 py-2 text-sm text-gray-800 cursor-pointer hover:bg-blue-100 transition-colors duration-150"
-                        role="option"
-                        aria-selected={false}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        onClick={() => handleLocationSelect(location)}
                       >
-                        {suggestion}
-                      </li>
+                        {location}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -783,15 +814,22 @@ function ApplyForJobs() {
                             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                               <div className="flex-1">
                                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                                  {job.is_urgent === 1 && (
+                                  <motion.span
+                                    className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                    whileHover={{ scale: 1.05 }}
+                                    transition={{ duration: 0.2 }}
+                                  >
+                                    🔥 Urgently hiring {job.isUrgent}
+                                  </motion.span>
+                                  {/* {true && (
                                     <motion.span
                                       className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex items-center gap-1"
                                       whileHover={{ scale: 1.05 }}
                                       transition={{ duration: 0.2 }}
                                     >
-                                      🔥 Urgently hiring
+                                      🔥 Urgently hiring {job.isUrgent}
                                     </motion.span>
-                                  )}
+                                  )} */}
                                   <span className="text-xs text-gray-500 flex items-center gap-1">
                                     <Clock size={12} />
                                     {getDaysAgo(job.posted_date)}
@@ -844,7 +882,7 @@ function ApplyForJobs() {
                                 </div>
                               </div>
                               <div className="flex flex-row md:flex-col items-center md:items-end gap-2 self-end md:self-auto">
-                                {job.is_new === 1 && (
+                                {job.isNew && (
                                   <motion.span
                                     className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"
                                     whileHover={{ scale: 1.05 }}

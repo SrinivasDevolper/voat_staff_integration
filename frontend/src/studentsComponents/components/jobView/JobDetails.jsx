@@ -12,23 +12,96 @@ import {
 import Header from "../header/Header";
 import { Link, useParams } from "react-router-dom";
 import { useUserJobContext } from "../../contexts/UserJobContext";
+import Cookies from "js-cookie";
+import { apiUrl } from "../../../utilits/apiUrl";
+import { useState, useEffect } from "react";
 
 const JobDetails = ({}) => {
   const { id } = useParams();
-  const { 
-    savedJobs, 
-    getDaysAgo, 
-    selectedJob, 
-    setSelectedJob, 
+  const {
+    savedJobs,
+    getDaysAgo,
+    selectedJob,
+    setSelectedJob,
     handleApplyNow,
-    appliedJobs 
+    appliedJobs,
   } = useUserJobContext();
+  const [jobs, setJobs] = useState([]);
+  const [error, setError] = useState("");
 
   if (!id) {
     return <div>Job not found</div>;
   }
 
-  const isApplied = appliedJobs.some(job => job.id === selectedJob?.id);
+  const applyForJob = async (jobId) => {
+    const token = Cookies.get("jwtToken");
+    try {
+      const response = await fetch(`${apiUrl}/jobseeker/jobs/apply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // assuming JWT auth
+        },
+        body: JSON.stringify({ job_id: jobId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to apply for job");
+      }
+      alert("Applied successfully!");
+      return {
+        success: true,
+        applicationId: data.applicationId,
+        status: data.status,
+        appliedDate: data.appliedDate,
+      };
+    } catch (err) {
+      alert(`Failed: ${err.message}`);
+      return {
+        success: false,
+        message: err.message,
+      };
+    }
+  };
+
+  useEffect(() => {
+    const fetchAppliedJobById = async () => {
+      const token = Cookies.get("jwtToken");
+
+      try {
+        const response = await fetch(
+          `${apiUrl}/jobseeker/jobs/applied/${selectedJob.id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error?.message || "Failed to fetch job");
+        }
+
+        console.log(data.job, "Fetched job");
+        setJobs([data.job]); // or setJob(data.job) if storing one
+      } catch (err) {
+        console.error("Fetch error:", err.message);
+        setError(err.message);
+      }
+    };
+
+    if (selectedJob?.id) {
+      fetchAppliedJobById();
+    }
+  }, [selectedJob?.id]);
+
+  console.log(jobs, "jobs");
+
+  const isApplied = appliedJobs.some((job) => job.id === selectedJob?.id);
 
   return (
     <div className="flex">
@@ -56,7 +129,7 @@ const JobDetails = ({}) => {
                   </h1>
                   {isApplied && (
                     <span className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full self-start md:self-auto w-28 text-center">
-                    • Applied
+                      • Applied
                     </span>
                   )}
                 </div>
@@ -83,7 +156,11 @@ const JobDetails = ({}) => {
                 <Briefcase className="text-blue-500" size={20} />
                 <div>
                   <div className="text-sm text-gray-600">SALARY</div>
-                  <div className="font-medium">{selectedJob.salary}</div>
+                  <div className="font-medium">
+                    {selectedJob.currency}
+                    {selectedJob.min_salary} - {selectedJob.currency}
+                    {selectedJob.max_salary}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -98,7 +175,7 @@ const JobDetails = ({}) => {
                 <div>
                   <div className="text-sm text-gray-600">POSTED</div>
                   <div className="font-medium">
-                    {getDaysAgo(selectedJob.postedDate)}
+                    {getDaysAgo(selectedJob.posted_date)}
                   </div>
                 </div>
               </div>
@@ -106,7 +183,7 @@ const JobDetails = ({}) => {
                 <Clock className="text-blue-500" size={20} />
                 <div>
                   <div className="text-sm text-gray-600">WORK MODE</div>
-                  <div className="font-medium">{selectedJob.workMode}</div>
+                  <div className="font-medium">{selectedJob.work_mode}</div>
                 </div>
               </div>
             </div>
@@ -152,6 +229,8 @@ const JobDetails = ({}) => {
                   <p>Location: {selectedJob.location}</p>
                   <p>Job Type: {selectedJob.type}</p>
                   <p>Required Skills: {selectedJob.skills}</p>
+                  <p>Eligibility: {selectedJob.eligibility}</p>
+                  <p>Pay Period: {selectedJob.pay_period}</p>
                 </div>
               </div>
 
@@ -174,7 +253,7 @@ const JobDetails = ({}) => {
             </div>
 
             <div className="flex justify-end">
-              {isApplied ? (
+              {jobs.length > 0 ? (
                 <Link
                   to="/applied-jobs"
                   className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md transition-colors text-lg w-full md:w-auto"
@@ -182,13 +261,13 @@ const JobDetails = ({}) => {
                   View Application
                 </Link>
               ) : (
-              <Link
-                to="/applied-jobs"
-                onClick={() => handleApplyNow(selectedJob.id)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition-colors text-lg w-full md:w-auto"
-              >
-                Apply Now
-              </Link>
+                <Link
+                  to="/applied-jobs"
+                  onClick={() => applyForJob(selectedJob.id)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition-colors text-lg w-full md:w-auto"
+                >
+                  Apply Now
+                </Link>
               )}
             </div>
           </div>

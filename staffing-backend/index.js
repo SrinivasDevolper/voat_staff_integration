@@ -40,6 +40,11 @@ app.use((err, req, res, next) => {
 });
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(
+  "/api/resumes",
+  express.static(path.join(__dirname, "uploads", "resumes"))
+);
+
 const uploadDir = path.join(__dirname, "uploads");
 const announcementsDir = path.join(uploadDir, "announcements");
 const resumesDir = path.join(uploadDir, "resumes");
