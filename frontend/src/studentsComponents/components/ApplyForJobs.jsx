@@ -10,9 +10,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { mockJobs } from "../../utilits/mockJobs";
 import { useUserJobContext } from "../contexts/UserJobContext";
-import ViewJob from "./sideBar/Viewjob";
 import { motion, AnimatePresence } from "framer-motion";
 
 function ApplyForJobs() {
@@ -215,16 +213,6 @@ function ApplyForJobs() {
     setShowSuggestions(false);
   };
 
-  // Common job titles and roles
-  const commonJobs = [
-    "Software Engineer", "Frontend Developer", "Backend Developer", "Full Stack Developer",
-    "React Developer", "Node.js Developer", "Python Developer", "Java Developer",
-    "DevOps Engineer", "Data Scientist", "Machine Learning Engineer", "UI/UX Designer",
-    "Product Manager", "Project Manager", "Business Analyst", "Quality Assurance",
-    "Mobile Developer", "iOS Developer", "Android Developer", "Cloud Engineer",
-    "System Administrator", "Network Engineer", "Security Engineer", "Database Administrator",
-    "Technical Lead", "Solution Architect", "Scrum Master", "Agile Coach"
-  ];
 
   const handleJobSearch = (e) => {
     const value = e.target.value;
@@ -336,7 +324,7 @@ function ApplyForJobs() {
   return (
     <div className="flex">
       <Header />
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-20 max-w-[1800px] mx-auto p-2 h-screen flex flex-col">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-24 max-w-[1800px] mx-auto p-2 h-screen flex flex-col">
         <div className="flex flex-col h-screen">
           {/* Search header */}
           <div className="bg-white p-4 shadow-sm border-b border-gray-200">

@@ -26,9 +26,11 @@ import Hiring from "./Hrdashboard/hr pages/Hiring";
 import ForgotPassword from "./Landing/components/ForgotPassword";
 import Navbar from "./Landing/components/Navbar";
 import ChangePassword from "./studentsComponents/components/ChangePassword";
-import CustomCursor from "./components/CustomCursor";
 import StudentEmailOtp from "./studentsComponents/components/StudentEmailOtp";
-import { Toaster } from "react-hot-toast";
+import JobSearchPage from "./Landing/pages/JobSearchPage";
+import JobDetailsPage from "./Landing/pages/JobDetailsPage";
+import { Toaster } from 'react-hot-toast';
+import HrEmailOtp from "./Hrdashboard/hr pages/HrEmailOtp";
 
 import "./App.css";
 
@@ -49,8 +51,6 @@ function App() {
 
   return (
     <>
-      {/* Custom Cursor only on main landing page */}
-      {isMainPage && <CustomCursor />}
       {/* ✅ Padding only for main page */}
       {isMainPage && <div className="pt-1" />}
 
@@ -58,10 +58,12 @@ function App() {
 
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<MainPages />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/" element={<MainPages />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/jobs/search" element={<JobSearchPage />} />
+          <Route path="/jobs/details/:id" element={<JobDetailsPage />} />
 
         {/* HR Dashboard Routes */}
         <Route path="/hire" element={<Layout />}>
@@ -81,6 +83,9 @@ function App() {
           <Route path="hiring" element={<Hiring />} />
         </Route>
 
+        {/* Standalone HR OTP route (no sidebar/header) */}
+        <Route path="/hire/verify-email-otp" element={<HrEmailOtp />} />
+
         {/* Student Routes */}
         <Route
           path="/profile"
@@ -99,7 +104,7 @@ function App() {
           }
         />
         <Route
-          path="/reset-password"
+          path="/ChangePassword"
           element={
             <StudentLayout>
               <ChangePassword />

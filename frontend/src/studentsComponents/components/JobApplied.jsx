@@ -101,7 +101,7 @@ const JobApplied = () => {
   return (
     <div className="flex">
       <Header />
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-20 max-w-[1800px] mx-auto p-2 h-screen flex flex-col">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-24 max-w-[1800px] mx-auto p-2 h-screen flex flex-col">
         <div className="min-h-screen bg-[#F5F7FF]">
           <div className="container mx-auto">
             <div className="bg-white rounded-lg p-4 sm:p-6 shadow-none">
