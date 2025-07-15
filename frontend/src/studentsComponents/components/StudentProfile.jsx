@@ -83,10 +83,11 @@ export default function StudentProfile() {
 
         setUserName(data.username);
         setUserBio(data.bio);
-        // if (data?.resume_filepath) {
-        //   setResumePreview(data?.resume_filepath);
-        //   setResumeFile({ name: data.resume_filepath });
-        // }
+
+        if (data?.resume_filepath) {
+          setResumePreview(data?.resume_filepath);
+          setResumeFile({ name: data.resume_filepath });
+        }
       } catch (err) {
         console.error("Failed to load profile:", err);
         toast.error("Failed to load profile.");
@@ -124,22 +125,21 @@ export default function StudentProfile() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!studentDetails.name?.trim())
-      newErrors.studentName = "Name is required";
-    if (!studentDetails.email?.trim())
+    if (!studentDetails.name.trim()) newErrors.studentName = "Name is required";
+    if (!studentDetails.email.trim())
       newErrors.studentEmail = "Email is required";
     else if (!/^\S+@\S+\.\S+$/.test(studentDetails.email))
       newErrors.studentEmail = "Email is invalid";
-    if (!studentDetails.phone?.trim())
+    if (!studentDetails.phone.trim())
       newErrors.studentPhone = "Phone is required";
     if (!studentDetails.gender) newErrors.studentGender = "Gender is required";
-    if (!studentDetails.address?.trim())
+    if (!studentDetails.address.trim())
       newErrors.studentAddress = "Address is required";
-    if (!studentDetails.skills?.trim())
+    if (!studentDetails.skills.trim())
       newErrors.studentSkills = "Skills are required";
-    if (!studentDetails.whatsapp?.trim())
+    if (!studentDetails.whatsapp.trim())
       newErrors.studentWhatsapp = "WhatsApp number is required";
-    if (!studentDetails.about?.trim()) {
+    if (!studentDetails.about.trim()) {
       newErrors.studentAbout = "About is required";
     } else if (
       studentDetails.about.length < 500 ||
@@ -148,13 +148,13 @@ export default function StudentProfile() {
       newErrors.studentAbout = "About must be between 500 and 5000 characters";
     }
 
-    if (!parentDetails.name?.trim())
+    if (!parentDetails.name.trim())
       newErrors.parentName = "Parent name is required";
-    if (!parentDetails.phone?.trim())
+    if (!parentDetails.phone.trim())
       newErrors.parentPhone = "Parent phone is required";
     if (!parentDetails.relation)
       newErrors.parentRelation = "Relation is required";
-    if (!parentDetails.email?.trim())
+    if (!parentDetails.email.trim())
       newErrors.parentEmail = "Parent email is required";
     else if (!/^\S+@\S+\.\S+$/.test(parentDetails.email))
       newErrors.parentEmail = "Parent email is invalid";
@@ -362,7 +362,9 @@ export default function StudentProfile() {
       <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
         {label}
       </label>
-      <p className="text-sm sm:text-base text-gray-900">{value}</p>
+      <p className="text-sm sm:text-base text-gray-900 break-words whitespace-pre-line">
+        {value}
+      </p>
     </div>
   );
 
@@ -418,7 +420,7 @@ export default function StudentProfile() {
             onChange={handleStudentChange}
             className={`w-full px-3 sm:px-4 py-1 sm:py-2 rounded-lg border ${
               errors[name] ? "border-red-500" : "border-gray-300"
-            } focus:outline-none focus:ring-2 focus:ring-[#0F52BA] focus:border-transparent text-sm sm:text-base min-h-[200px]`}
+            } focus:outline-none focus:ring-2 focus:ring-[#0F52BA] focus:border-transparent text-sm sm:text-base min-h-[60px]`}
             disabled={!currentEditingState || isNonEditable}
             placeholder={`Enter ${label.toLowerCase()} (500-5000 characters)`}
           />
@@ -493,7 +495,7 @@ export default function StudentProfile() {
       <Header />
       <div className="flex-1 h-screen overflow-y-auto px-4 sm:px-6 pt-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md">
+          <div className="bg-white order-1 rounded-xl p-4 sm:p-6 shadow-md">
             <form
               onSubmit={(event) => event.preventDefault()}
               onKeyDown={(e) => {
@@ -507,28 +509,22 @@ export default function StudentProfile() {
                   <h3 className="text-base sm:text-lg font-semibold">
                     Student Details
                   </h3>
-                  {isEditing ? (
-                    <button
-                      onClick={studentUpdate}
-                      className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm"
-                    >
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm"
+                  >
+                    {isEditing ? (
                       <>
                         <Check size={16} />
                         <span>Done</span>
                       </>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setIsEditing(!isEditing)}
-                      className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm"
-                    >
-                      {" "}
+                    ) : (
                       <>
                         <Edit2 size={16} />
                         <span>Edit</span>
                       </>
-                    </button>
-                  )}
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -745,7 +741,7 @@ export default function StudentProfile() {
           </div>
 
           {/* Resume Upload Section */}
-          <div className="bg-white -order-1 md:order-1 rounded-xl p-4 sm:p-6 shadow-md">
+          <div className="bg-white order-2 md:order-1 rounded-xl p-4 sm:p-6 shadow-md">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
               Resume
             </h2>
@@ -755,7 +751,7 @@ export default function StudentProfile() {
                   <div className="relative w-full flex-1 mb-3 sm:mb-4">
                     <iframe
                       src={resumePreview}
-                      className="w-full h-full min-h-[90vh] border border-gray-200"
+                      className="w-full h-full min-h-[300px] border border-gray-200"
                       title="Resume Preview"
                     />
                   </div>

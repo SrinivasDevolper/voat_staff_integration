@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { apiUrl } from "../../utilits/apiUrl";
+import { useAuth } from "../../contexts/AuthContext";
 import Cookies from "js-cookie";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [activeTab, setActiveTab] = useState("left");
   const [name, setName] = useState("");
@@ -59,8 +61,6 @@ export default function Register() {
         }
       } catch (err) {
         console.error("Invalid userDetails cookie:", err);
-        // Cookies.remove("jwtToken");
-        // Cookies.remove("userDetails");
       }
     }
   }, [navigate]);
@@ -249,8 +249,7 @@ export default function Register() {
       const { message, token, data } = response.data; // ✅ CORRECT ACCESS
       console.log(response, data, "data");
       toast(message);
-      Cookies.set("jwtToken", token, { expires: 7 });
-      Cookies.set("userDetails", JSON.stringify(data), { expires: 7 });
+      login(token, data);
       // setShowOtp(false);
       if (data?.attemptsLeft) setVerifyAttemptsLeft(data?.attemptsLeft ?? 0);
 
@@ -377,256 +376,296 @@ export default function Register() {
         </div>
 
         <div className="md:w-1/2 p-8 flex flex-col justify-center items-center">
-          {!showOtp && (
-            <div className="mb-6 flex justify-center w-full max-w-md">
-              <div className="flex bg-gray-100 rounded-full p-1 relative w-[200px]">
-                <motion.div
-                  className="absolute top-0 bottom-0 left-0 w-1/2 bg-blue-500 center rounded-full z-0"
-                  animate={{ x: activeTab === "right" ? "100%" : "0%" }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-                <button
-                  className={`w-1/2 relative z-10 py-2 text-sm font-semibold rounded-full transition-colors duration-300 ${
-                    activeTab === "left"
-                      ? "bg-blue-500 text-white"
-                      : "text-blue-600"
-                  }`}
-                  onClick={() => setActiveTab("left")}
-                >
-                  User
-                </button>
-                <button
-                  className={`w-1/2 relative z-10 py-2 text-sm font-semibold rounded-full transition-colors duration-300 ${
-                    activeTab === "right"
-                      ? "bg-blue-500 text-white"
-                      : "text-blue-600"
-                  }`}
-                  onClick={() => setActiveTab("right")}
-                >
-                  HR
-                </button>
-              </div>
-            </div>
-          )}
-
-          <AnimatePresence mode="wait">
-            {!showOtp ? (
-              <motion.form
-                key="signup"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -50 }}
-                transition={{ duration: 0.5 }}
-                className="w-full max-w-md space-y-4"
-              >
-                <h2 className="text-center text-2xl font-bold mb-6 text-gray-900">
-                  Create an Account
-                </h2>
-
-                <div>
-                  <label className="block mb-1 text-sm font-semibold text-gray-700">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => {
-                      if (/^[a-zA-Z\s]*$/.test(e.target.value))
-                        setName(e.target.value);
-                    }}
-                    maxLength={50}
-                    required
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 bg-white placeholder-blue-400"
-                    placeholder="Enter your name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-semibold text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    maxLength={100}
-                    required
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 bg-white placeholder-blue-400"
-                    placeholder="Enter your email"
-                  />
-                </div>
-
-                <div className="relative">
-                  <label className="block mb-1 text-sm font-semibold text-gray-700">
-                    Password
-                  </label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    minLength={8}
-                    maxLength={30}
-                    required
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-m text-gray-900  placeholder-blue-400 bg-white"
-                    placeholder="Min 8 chars with upper, lower, digit & special"
-                  />
-                  <span
-                    className="absolute top-9 right-3 cursor-pointer text-gray-600"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </span>
-                </div>
-
-                {password && (
+          {/* Responsive padding only for the form content, not the entire column */}
+          <div className="w-full max-w-md px-4 sm:px-6">
+            {!showOtp && (
+              <div className="mb-6 flex justify-center w-full max-w-md">
+                <div className="flex bg-gray-100 rounded-full p-1 relative w-[200px]">
                   <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="space-y-2"
+                    className="absolute top-0 bottom-0 left-0 w-1/2 bg-blue-500 center rounded-full z-0"
+                    animate={{ x: activeTab === "right" ? "100%" : "0%" }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                  <button
+                    className={`w-1/2 relative z-10 py-2 text-sm font-semibold rounded-full transition-colors duration-300 ${
+                      activeTab === "left"
+                        ? "bg-blue-500 text-white"
+                        : "text-blue-600"
+                    }`}
+                    onClick={() => setActiveTab("left")}
                   >
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Password strength:</span>
-                      <span
-                        className={`font-medium ${getPasswordStrengthColor().replace(
-                          "bg-",
-                          "text-"
-                        )}`}
-                      >
-                        {getPasswordStrengthText()}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <motion.div
-                        className={`h-2 rounded-full ${getPasswordStrengthColor()}`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(passwordStrength / 5) * 100}%` }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                      <div
-                        className={`flex items-center gap-1 ${
-                          password.length >= 8 ? "text-green-600" : ""
-                        }`}
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        At least 8 characters
-                      </div>
-                      <div
-                        className={`flex items-center gap-1 ${
-                          /[A-Z]/.test(password) ? "text-green-600" : ""
-                        }`}
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        One uppercase letter
-                      </div>
-                      <div
-                        className={`flex items-center gap-1 ${
-                          /[a-z]/.test(password) ? "text-green-600" : ""
-                        }`}
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        One lowercase letter
-                      </div>
-                      <div
-                        className={`flex items-center gap-1 ${
-                          /[0-9]/.test(password) ? "text-green-600" : ""
-                        }`}
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        One number
-                      </div>
-                      <div
-                        className={`flex items-center gap-1 ${
-                          /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
-                            ? "text-green-600"
-                            : ""
-                        }`}
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        One special character
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
+                    User
+                  </button>
+                  <button
+                    className={`w-1/2 relative z-10 py-2 text-sm font-semibold rounded-full transition-colors duration-300 ${
+                      activeTab === "right"
+                        ? "bg-blue-500 text-white"
+                        : "text-blue-600"
+                    }`}
+                    onClick={() => setActiveTab("right")}
+                  >
+                    HR
+                  </button>
+                </div>
+              </div>
+            )}
+            <AnimatePresence mode="wait">
+              {!showOtp ? (
+                <motion.form
+                  key="signup"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -50 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-full max-w-md space-y-4"
+                >
+                  <h2 className="text-center text-2xl font-bold mb-6 text-gray-900">
+                    Create an Account
+                  </h2>
 
-                {activeTab === "left" && (
                   <div>
                     <label className="block mb-1 text-sm font-semibold text-gray-700">
-                      Upload Resume (PDF, DOC, or DOCX)
+                      Name
                     </label>
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        onChange={handleFileChange}
-                        required
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        id="file-upload"
-                      />
-                      <div
-                        className={`border-2 border-dashed rounded-lg p-3 text-center transition-all duration-300 bg-white ${
-                          isDragOver
-                            ? "border-blue-400 bg-blue-50"
-                            : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-                        }`}
-                      >
-                        {selectedFile ? (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => {
+                        if (/^[a-zA-Z\s]*$/.test(e.target.value))
+                          setName(e.target.value);
+                      }}
+                      maxLength={50}
+                      required
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 bg-white placeholder-blue-400"
+                      placeholder="Enter your name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      maxLength={100}
+                      required
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 bg-white placeholder-blue-400"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">
+                      Password
+                    </label>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={8}
+                      maxLength={30}
+                      required
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-m text-gray-900  placeholder-blue-400 bg-white"
+                      placeholder="Min 8 chars with upper, lower, digit & special"
+                    />
+                    <span
+                      className="absolute top-9 right-3 cursor-pointer text-gray-600"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </span>
+                  </div>
+
+                  {password && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Password strength:</span>
+                        <span
+                          className={`font-medium ${getPasswordStrengthColor().replace(
+                            "bg-",
+                            "text-"
+                          )}`}
+                        >
+                          {getPasswordStrengthText()}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <motion.div
+                          className={`h-2 rounded-full ${getPasswordStrengthColor()}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(passwordStrength / 5) * 100}%` }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                        <div
+                          className={`flex items-center gap-1 ${
+                            password.length >= 8 ? "text-green-600" : ""
+                          }`}
+                        >
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          At least 8 characters
+                        </div>
+                        <div
+                          className={`flex items-center gap-1 ${
+                            /[A-Z]/.test(password) ? "text-green-600" : ""
+                          }`}
+                        >
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          One uppercase letter
+                        </div>
+                        <div
+                          className={`flex items-center gap-1 ${
+                            /[a-z]/.test(password) ? "text-green-600" : ""
+                          }`}
+                        >
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          One lowercase letter
+                        </div>
+                        <div
+                          className={`flex items-center gap-1 ${
+                            /[0-9]/.test(password) ? "text-green-600" : ""
+                          }`}
+                        >
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          One number
+                        </div>
+                        <div
+                          className={`flex items-center gap-1 ${
+                            /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+                              ? "text-green-600"
+                              : ""
+                          }`}
+                        >
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          One special character
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === "left" && (
+                    <div>
+                      <label className="block mb-1 text-sm font-semibold text-gray-700">
+                        Upload Resume (PDF, DOC, or DOCX)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          onChange={handleFileChange}
+                          required
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          id="file-upload"
+                        />
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-3 text-center transition-all duration-300 bg-white ${
+                            isDragOver
+                              ? "border-blue-400 bg-blue-50"
+                              : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+                          }`}
+                        >
+                          {selectedFile ? (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                  <svg
+                                    className="w-4 h-4 text-green-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {selectedFile.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {(selectedFile.size / 1024 / 1024).toFixed(2)}{" "}
+                                    MB
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedFile(null);
+                                  document.getElementById("file-upload").value =
+                                    "";
+                                }}
+                                className="text-xs text-red-600 hover:text-red-800 underline"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center space-x-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                 <svg
-                                  className="w-4 h-4 text-green-600"
+                                  className="w-4 h-4 text-blue-600"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -635,199 +674,161 @@ export default function Register() {
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                                   />
                                 </svg>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {selectedFile.name}
+                              <div className="text-left">
+                                <p className="text-sm font-medium text-gray-900">
+                                  Click to upload or drag and drop
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {(selectedFile.size / 1024 / 1024).toFixed(2)}{" "}
-                                  MB
+                                  PDF, DOC, or DOCX (max 10MB)
                                 </p>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedFile(null);
-                                document.getElementById("file-upload").value =
-                                  "";
-                              }}
-                              className="text-xs text-red-600 hover:text-red-800 underline"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <svg
-                                className="w-4 h-4 text-blue-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                />
-                              </svg>
-                            </div>
-                            <div className="text-left">
-                              <p className="text-sm font-medium text-gray-900">
-                                Click to upload or drag and drop
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                PDF, DOC, or DOCX (max 10MB)
-                              </p>
-                            </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-
-                <motion.button
-                  type="button"
-                  onClick={handleGetOtp}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  disabled={loading || lockTimer > 0 || resendTimer > 0}
-                  className={`w-full font-semibold py-2 rounded-lg transition duration-300 flex items-center justify-center ${
-                    loading || lockTimer > 0 || resendTimer > 0
-                      ? "bg-blue-300 cursor-not-allowed"
-                      : "bg-blue-700 hover:bg-blue-800 text-white"
-                  }`}
-                >
-                  {loading && <Loader2 className="animate-spin mr-2 h-5 w-5" />}
-                  Get OTP ({attemptsLeft} Left)
-                </motion.button>
-
-                {resendTimer > 0 && (
-                  <p className="text-red-400 font-medium">
-                    Please wait {resendTimer}s before requesting another OTP.
-                  </p>
-                )}
-
-                {lockTimer > 0 && (
-                  <p className="mb-4 text-red-400 font-semibold">
-                    Account is temporarily blocked for {lockTimer}s.
-                  </p>
-                )}
-
-                <div className="mt-4 flex justify-between">
-                  <span
-                    onClick={() => navigate("/")}
-                    className="text-blue-600 text-sm font-semibold cursor-pointer transition-all duration-200 hover:underline hover:text-blue-700 flex items-center gap-1"
-                  >
-                    <Home size={16} /> Go To Home
-                  </span>
-                  <span
-                    onClick={() => navigate("/login")}
-                    className="text-blue-600 text-sm font-semibold cursor-pointer transition-all duration-200 hover:underline hover:text-blue-700 flex items-center gap-1"
-                  >
-                    <UserPlus size={16} /> Go to Login Now
-                  </span>
-                </div>
-              </motion.form>
-            ) : (
-              <motion.div
-                key="otp"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
-                className="w-full max-w-md flex flex-col items-center"
-              >
-                <h2 className="text-center text-2xl font-bold mb-6 text-gray-900">
-                  Enter OTP
-                </h2>
-                <div className="flex space-x-2 mb-4">
-                  {otp.map((val, idx) => (
-                    <input
-                      key={idx}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={val}
-                      onChange={(e) => handleOtpChange(e, idx)}
-                      onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                      disabled={loading || lockTimer > 0 || otpExpiresIn === 0}
-                      ref={(el) => (inputRefs.current[idx] = el)}
-                      className={`w-10 h-12 text-center text-lg border rounded-md ${
-                        lockTimer > 0
-                          ? "bg-gray-200 cursor-not-allowed"
-                          : "bg-white"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <motion.button
-                  onClick={handleVerifyOtp}
-                  disabled={loading || lockTimer > 0} // verifyBlockTimer, verifyAttemptsLeft,
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className={`w-full font-semibold py-2 rounded-lg transition duration-300 flex items-center justify-center ${
-                    loading || lockTimer > 0
-                      ? "bg-blue-300 cursor-not-allowed"
-                      : "bg-blue-700 hover:bg-blue-800 text-white"
-                  }`}
-                >
-                  {loading && <Loader2 className="animate-spin mr-2 h-5 w-5" />}
-                  Verify OTP (
-                  {verifyAttemptsLeft <= 1
-                    ? verifyAttemptsLeft
-                    : verifyAttemptsLeft + "s"}
-                  )
-                </motion.button>
-                {lockTimer > 0 && (
-                  <p className="mb-4 text-red-400 font-semibold">
-                    Too many wrong attempts. Please wait {lockTimer}s.
-                  </p>
-                )}
-                <p className="mt-4 text-gray-600">
-                  Didn't receive OTP?{" "}
-                  {otpExpiresIn <= 0 && (
-                    <button
-                      onClick={(e) => {
-                        if (otpExpiresIn === 0 && !loading) handleResendOtp();
-                      }}
-                      disabled={otpExpiresIn !== 0 || loading || lockTimer > 0}
-                      className={`text-blue-600 underline cursor-pointer ${
-                        otpExpiresIn !== 0
-                          ? "cursor-not-allowed text-gray-400"
-                          : ""
-                      }`}
-                    >
-                      Resend OTP (
-                      {attemptsLeft <= 1
-                        ? attemptsLeft + "left"
-                        : attemptsLeft + "lefts"}
-                      ) {otpExpiresIn > 0 && `(${otpExpiresIn}s)`}
-                    </button>
                   )}
-                  {otpExpiresIn > 0 && `(${otpExpiresIn}s)`}
-                </p>
-                <p
-                  onClick={() => {
-                    setShowOtp(false);
-                    setOtp(new Array(6).fill(""));
-                    // setAttemptsLeft(3);
-                    // setLockTimer(0);
-                  }}
-                  className="mt-4 text-sm text-blue-600 hover:underline cursor-pointer"
+
+                  <motion.button
+                    type="button"
+                    onClick={handleGetOtp}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    disabled={loading || lockTimer > 0 || resendTimer > 0}
+                    className={`w-full font-semibold py-2 rounded-lg transition duration-300 flex items-center justify-center ${
+                      loading || lockTimer > 0 || resendTimer > 0
+                        ? "bg-blue-300 cursor-not-allowed"
+                        : "bg-blue-700 hover:bg-blue-800 text-white"
+                    }`}
+                  >
+                    {loading && <Loader2 className="animate-spin mr-2 h-5 w-5" />}
+                    Get OTP
+                  </motion.button>
+
+                  {resendTimer > 0 && (
+                    <p className="text-red-400 font-medium">
+                      Please wait {resendTimer}s before requesting another OTP.
+                    </p>
+                  )}
+
+                  {lockTimer > 0 && (
+                    <p className="mb-4 text-red-400 font-semibold">
+                      Account is temporarily blocked for {lockTimer}s.
+                    </p>
+                  )}
+
+                  <div className="mt-4 flex justify-between">
+                    <span
+                      onClick={() => navigate("/")}
+                      className="text-blue-600 text-sm font-semibold cursor-pointer transition-all duration-200 hover:underline hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <Home size={16} /> Go To Home
+                    </span>
+                    <span
+                      onClick={() => navigate("/login")}
+                      className="text-blue-600 text-sm font-semibold cursor-pointer transition-all duration-200 hover:underline hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <UserPlus size={16} /> Go to Login Now
+                    </span>
+                  </div>
+                </motion.form>
+              ) : (
+                <motion.div
+                  key="otp"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-full max-w-md flex flex-col items-center"
                 >
-                  Back to Signup
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <h2 className="text-center text-2xl font-bold mb-6 text-gray-900">
+                    Enter OTP
+                  </h2>
+                  <div className="flex space-x-2 mb-4">
+                    {otp.map((val, idx) => (
+                      <input
+                        key={idx}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={val}
+                        onChange={(e) => handleOtpChange(e, idx)}
+                        onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                        disabled={loading || lockTimer > 0 || otpExpiresIn === 0}
+                        ref={(el) => (inputRefs.current[idx] = el)}
+                        className={`w-10 h-12 text-center text-lg border rounded-md ${
+                          lockTimer > 0
+                            ? "bg-gray-200 cursor-not-allowed"
+                            : "bg-white"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <motion.button
+                    onClick={handleVerifyOtp}
+                    disabled={loading || lockTimer > 0} // verifyBlockTimer, verifyAttemptsLeft,
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className={`w-full font-semibold py-2 rounded-lg transition duration-300 flex items-center justify-center ${
+                      loading || lockTimer > 0
+                        ? "bg-blue-300 cursor-not-allowed"
+                        : "bg-blue-700 hover:bg-blue-800 text-white"
+                    }`}
+                  >
+                    {loading && <Loader2 className="animate-spin mr-2 h-5 w-5" />}
+                    Verify OTP (
+                    {verifyAttemptsLeft <= 1
+                      ? verifyAttemptsLeft
+                      : verifyAttemptsLeft + "s"}
+                    )
+                  </motion.button>
+                  {lockTimer > 0 && (
+                    <p className="mb-4 text-red-400 font-semibold">
+                      Too many wrong attempts. Please wait {lockTimer}s.
+                    </p>
+                  )}
+                  <p className="mt-4 text-gray-600">
+                    Didn't receive OTP?{" "}
+                    {otpExpiresIn <= 0 && (
+                      <button
+                        onClick={(e) => {
+                          if (otpExpiresIn === 0 && !loading) handleResendOtp();
+                        }}
+                        disabled={otpExpiresIn !== 0 || loading || lockTimer > 0}
+                        className={`text-blue-600 underline cursor-pointer ${
+                          otpExpiresIn !== 0
+                            ? "cursor-not-allowed text-gray-400"
+                            : ""
+                        }`}
+                      >
+                        Resend OTP (
+                        {attemptsLeft <= 1
+                          ? attemptsLeft + "left"
+                          : attemptsLeft + "lefts"}
+                        ) {otpExpiresIn > 0 && `(${otpExpiresIn}s)`}
+                      </button>
+                    )}
+                    {otpExpiresIn > 0 && `(${otpExpiresIn}s)`}
+                  </p>
+                  <p
+                    onClick={() => {
+                      setShowOtp(false);
+                      setOtp(new Array(6).fill(""));
+                      // setAttemptsLeft(3);
+                      // setLockTimer(0);
+                    }}
+                    className="mt-4 text-sm text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Back to Signup
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.div>
     </section>
