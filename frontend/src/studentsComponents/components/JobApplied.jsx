@@ -83,11 +83,6 @@ const JobApplied = () => {
             status: "Hired", // Make sure hiring jobs have status
           }));
         break;
-      // case "previous":
-      //   jobsToShow = jobsData.filter(job => job.status === "previous");
-      //   break;
-      // default:
-      //   jobsToShow = [];
     }
     setVisibleJobs(jobsToShow);
   }, [activeTab, appliedJobs]);

@@ -9,7 +9,7 @@ const {
   getJobseekerResumePathByUserId,
   findJobs,
   findJobById,
-  findAppliedJobs,
+  findAppliedJobByUserAndJobId,
   findAppliedJobsByStatus,
   checkJobExists,
   findExistingApplication,
@@ -286,6 +286,8 @@ const getJobs = async (req, res) => {
       employmentType,
     });
 
+    // console.log(jobs, "jobs");
+
     res.json({
       jobs: jobs,
       pagination: {
@@ -387,7 +389,7 @@ const getAppliedJobById = async (req, res) => {
       });
     }
 
-    const job = await findAppliedJobs(jobseekerId, id); // Custom helper
+    const job = await findAppliedJobByUserAndJobId(jobseekerId, id);
     console.log(job, "Job");
     if (!job) {
       return res.status(404).json({
@@ -411,14 +413,78 @@ const getAppliedJobById = async (req, res) => {
 };
 
 // POST /jobseeker/api/jobs/apply
+// const applyJob = async (req, res) => {
+//   const { job_id } = req.body;
+//   if (!job_id) {
+//     return res.status(400).json({ error: "Job ID required" });
+//   }
+
+//   try {
+//     // Check if the job exists using the helper function
+//     const jobExists = await checkJobExists(job_id);
+//     if (!jobExists) {
+//       return res
+//         .status(404)
+//         .json({ error: { code: 404, message: "Job not found." } });
+//     }
+
+//     // Get the jobseeker's current resume filepath
+//     const jobseekerResumePath = await getJobseekerResumePathByUserId(
+//       req.user.id
+//     );
+
+//     // Optional: Enforce resume requirement for applying
+//     if (!jobseekerResumePath) {
+//       return res.status(400).json({
+//         error: {
+//           code: 400,
+//           message: "Please upload your resume before applying for a job.",
+//         },
+//       });
+//     }
+
+//     // Check if already applied using the helper function
+//     const alreadyApplied = await findExistingApplication(job_id, req.user.id);
+
+//     if (alreadyApplied) {
+//       return res.status(409).json({
+//         error: {
+//           code: 409,
+//           message: "You have already applied for this job.",
+//         },
+//       });
+//     }
+
+//     // Insert new application using the helper function
+//     const applicationId = await createJobApplication(
+//       job_id,
+//       req.user.id,
+//       jobseekerResumePath,
+//       "Applied"
+//     );
+
+//     res.status(201).json({
+//       message: "Job application submitted successfully",
+//       applicationId: applicationId,
+//       jobId: job_id,
+//       jobseekerId: req.user.id,
+//       status: "Applied",
+//       appliedDate: new Date().toISOString(), // Use current timestamp for response
+//     });
+//   } catch (error) {
+//     console.error("Error submitting application:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// };
 const applyJob = async (req, res) => {
   const { job_id } = req.body;
+
   if (!job_id) {
     return res.status(400).json({ error: "Job ID required" });
   }
 
   try {
-    // Check if the job exists using the helper function
+    // 1. Check if job exists
     const jobExists = await checkJobExists(job_id);
     if (!jobExists) {
       return res
@@ -426,12 +492,30 @@ const applyJob = async (req, res) => {
         .json({ error: { code: 404, message: "Job not found." } });
     }
 
-    // Get the jobseeker's current resume filepath
+    // 2. Get full job details
+    const job = await findJobById(job_id);
+
+    // 3. Validate job status
+    const today = new Date();
+    const closingDate = job.closing_date ? new Date(job.closing_date) : null;
+    if (
+      job.job_status !== "active" ||
+      (closingDate && closingDate < today) ||
+      (job.applications_needed &&
+        job.applications_received >= job.applications_needed)
+    ) {
+      return res.status(400).json({
+        error: {
+          code: 400,
+          message: "This job is no longer accepting applications.",
+        },
+      });
+    }
+
+    // 4. Resume check
     const jobseekerResumePath = await getJobseekerResumePathByUserId(
       req.user.id
     );
-
-    // Optional: Enforce resume requirement for applying
     if (!jobseekerResumePath) {
       return res.status(400).json({
         error: {
@@ -441,7 +525,7 @@ const applyJob = async (req, res) => {
       });
     }
 
-    // Check if already applied using the helper function
+    // 5. Prevent duplicate applications
     const alreadyApplied = await findExistingApplication(job_id, req.user.id);
     if (alreadyApplied) {
       return res.status(409).json({
@@ -452,22 +536,39 @@ const applyJob = async (req, res) => {
       });
     }
 
-    // Insert new application using the helper function
-    const applicationId = await createJobApplication(
+    // 6. Create application
+    await createJobApplication(
       job_id,
       req.user.id,
       jobseekerResumePath,
       "Applied"
     );
 
-    res.status(201).json({
-      message: "Job application submitted successfully",
-      applicationId: applicationId,
-      jobId: job_id,
-      jobseekerId: req.user.id,
-      status: "Applied",
-      appliedDate: new Date().toISOString(), // Use current timestamp for response
-    });
+    // 7. Update applications_received
+    await pool.execute(
+      "UPDATE jobs SET applications_received = applications_received + 1 WHERE id = ?",
+      [job_id]
+    );
+
+    // 8. Auto-close job if filled
+    const [updatedJobRows] = await pool.execute(
+      "SELECT applications_received, applications_needed FROM jobs WHERE id = ?",
+      [job_id]
+    );
+    const updatedJob = updatedJobRows[0];
+    if (
+      updatedJob.applications_needed &&
+      updatedJob.applications_received >= updatedJob.applications_needed
+    ) {
+      await pool.execute(
+        "UPDATE jobs SET job_status = 'hiring done' WHERE id = ?",
+        [job_id]
+      );
+    }
+
+    // 9. Send success response with job details
+    const finalJobDetails = await findJobById(job_id);
+    return res.status(201).json(finalJobDetails);
   } catch (error) {
     console.error("Error submitting application:", error);
     res.status(500).json({ error: "Internal server error" });

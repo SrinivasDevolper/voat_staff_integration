@@ -15,6 +15,8 @@ import { useUserJobContext } from "../../contexts/UserJobContext";
 import Cookies from "js-cookie";
 import { apiUrl } from "../../../utilits/apiUrl";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 const JobDetails = ({}) => {
   const { id } = useParams();
@@ -46,11 +48,11 @@ const JobDetails = ({}) => {
       });
 
       const data = await response.json();
-
+      console.log(data, "data");
       if (!response.ok) {
         throw new Error(data.error?.message || "Failed to apply for job");
       }
-      alert("Applied successfully!");
+      toast.success(data?.message || "Applied successfully!");
       return {
         success: true,
         applicationId: data.applicationId,
@@ -59,6 +61,7 @@ const JobDetails = ({}) => {
       };
     } catch (err) {
       alert(`Failed: ${err.message}`);
+      toast.error(err.message || "Internal Server");
       return {
         success: false,
         message: err.message,
@@ -89,7 +92,7 @@ const JobDetails = ({}) => {
         console.log(data.job, "Fetched job");
         setJobs([data.job]); // or setJob(data.job) if storing one
       } catch (err) {
-        console.error("Fetch error:", err.message);
+        console.log("Fetch error:", err.message);
         setError(err.message);
       }
     };

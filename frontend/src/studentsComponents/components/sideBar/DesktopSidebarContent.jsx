@@ -11,6 +11,20 @@ import axios from "axios";
 const DesktopSidebarContent = () => {
   const pathname = useLocation();
   const [currentPath, setCurrentPath] = useState(pathname.pathname);
+  const [sidebarDetails, setSidebarDetails] = useState(null);
+
+  useEffect(() => {
+    const userSideBarDetails = Cookies.get("sideBarDetails");
+    if (userSideBarDetails) {
+      try {
+        const parsed = JSON.parse(userSideBarDetails);
+        setSidebarDetails(parsed);
+      } catch (err) {
+        console.error("Invalid sidebarDetails cookie:", err);
+      }
+    }
+  }, []);
+
   const { username, setUserName, userBio, setUserBio } =
     useContext(UserDetailsContext);
   useEffect(() => {
@@ -27,9 +41,11 @@ const DesktopSidebarContent = () => {
           </div>
         </div>
         <h2 className="text-2xl font-semibold text-gray-800 text-center">
-          {username}
+          {username || sidebarDetails?.username}
         </h2>
-        <p className="text-gray-500 text-sm text-center">{userBio}</p>
+        <p className="text-gray-500 text-sm text-center">
+          {userBio || sidebarDetails?.bio}
+        </p>
       </div>
 
       <nav className="flex-1 overflow-y-auto pb-6 px-4">

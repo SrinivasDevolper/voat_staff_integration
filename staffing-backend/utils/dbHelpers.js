@@ -381,12 +381,24 @@ async function findJobs(queryParams) {
   } = queryParams;
 
   const MAX_LIMIT = 100;
-  limit = Math.min(parseInt(limit), MAX_LIMIT);
-  page = parseInt(page);
+  limit = Math.max(1, Math.min(parseInt(limit), MAX_LIMIT));
+  page = Math.max(1, parseInt(page));
+  const offset = (page - 1) * limit;
 
-  let baseQuery = "SELECT * FROM jobs WHERE 1=1";
-  let countQuery = "SELECT COUNT(*) AS total FROM jobs WHERE 1=1";
+  let baseQuery = "SELECT * FROM jobs WHERE job_status = 'active'";
+  let countQuery =
+    "SELECT COUNT(*) AS total FROM jobs WHERE job_status = 'active'";
   const params = [];
+
+  // Exclude expired jobs
+  baseQuery += " AND (closing_date IS NULL OR closing_date >= CURDATE())";
+  countQuery += " AND (closing_date IS NULL OR closing_date >= CURDATE())";
+
+  // Exclude fully applied jobs
+  baseQuery +=
+    " AND (applications_needed IS NULL OR applications_received < applications_needed)";
+  countQuery +=
+    " AND (applications_needed IS NULL OR applications_received < applications_needed)";
 
   if (q) {
     const searchTerm = `%${q}%`;
@@ -426,17 +438,20 @@ async function findJobs(queryParams) {
   if (datePosted) {
     const now = new Date();
     let dateFilter = null;
-    if (datePosted === "last24hours") {
+
+    if (datePosted.toLowerCase() === "last 24 hours") {
       dateFilter = new Date(now.setDate(now.getDate() - 1));
-    } else if (datePosted === "last7days") {
+    } else if (datePosted.toLowerCase() === "last 3 days") {
+      dateFilter = new Date(now.setDate(now.getDate() - 3));
+    } else if (datePosted.toLowerCase() === "last 7 days") {
       dateFilter = new Date(now.setDate(now.getDate() - 7));
-    } else if (datePosted === "last30days") {
-      dateFilter = new Date(now.setDate(now.getDate() - 30));
     }
+
     if (dateFilter) {
+      const formatted = dateFilter.toISOString().slice(0, 19).replace("T", " ");
       baseQuery += " AND posted_date >= ?";
       countQuery += " AND posted_date >= ?";
-      params.push(dateFilter.toISOString().slice(0, 19).replace("T", " "));
+      params.push(formatted);
     }
   }
 
@@ -445,16 +460,131 @@ async function findJobs(queryParams) {
     countQuery += " AND is_urgent = 1";
   }
 
+  // Execute count query
   const [totalJobsResult] = await pool.execute(countQuery, params);
   const totalJobs = totalJobsResult[0].total;
   const totalPages = Math.ceil(totalJobs / limit);
-  const offset = (page - 1) * limit;
 
-  const finalBaseQueryWithPagination = `${baseQuery} LIMIT ${limit} OFFSET ${offset}`;
-  const [jobs] = await pool.execute(finalBaseQueryWithPagination, params);
+  // Final query with sorting and pagination (embed limit and offset)
+  const finalQuery = `${baseQuery} ORDER BY posted_date DESC LIMIT ${limit} OFFSET ${offset}`;
+  const [jobs] = await pool.execute(finalQuery, params);
 
   return { jobs, totalJobs, totalPages, currentPage: page, limit };
 }
+
+// async function findJobs(queryParams) {
+//   let {
+//     q,
+//     experienceLevel,
+//     location,
+//     datePosted,
+//     isUrgent,
+//     page = 1,
+//     limit = 10,
+//     minSalary,
+//     maxSalary,
+//     employmentType,
+//   } = queryParams;
+
+//   const MAX_LIMIT = 100;
+//   limit = Math.min(parseInt(limit), MAX_LIMIT);
+//   page = parseInt(page);
+
+//   let baseQuery = "SELECT * FROM jobs WHERE 1=1";
+//   let countQuery = "SELECT COUNT(*) AS total FROM jobs WHERE 1=1";
+
+//   // ❗ Filter: Jobs that are not expired
+//   baseQuery += " AND (closing_date IS NULL OR closing_date >= CURRENT_DATE())";
+//   countQuery += " AND (closing_date IS NULL OR closing_date >= CURRENT_DATE())";
+
+//   // ❗ Filter: Jobs that still need applications
+//   baseQuery +=
+//     " AND (applications_needed IS NULL OR applications_received < applications_needed)";
+//   countQuery +=
+//     " AND (applications_needed IS NULL OR applications_received < applications_needed)";
+
+//   const params = [];
+
+//   if (q) {
+//     const searchTerm = `%${q}%`;
+//     baseQuery += " AND (title LIKE ? OR company LIKE ? OR description LIKE ?)";
+//     countQuery += " AND (title LIKE ? OR company LIKE ? OR description LIKE ?)";
+//     params.push(searchTerm, searchTerm, searchTerm);
+//   }
+
+//   if (experienceLevel) {
+//     baseQuery += " AND experience = ?";
+//     countQuery += " AND experience = ?";
+//     params.push(experienceLevel);
+//   }
+
+//   if (location) {
+//     baseQuery += " AND location LIKE ?";
+//     countQuery += " AND location LIKE ?";
+//     params.push(`%${location}%`);
+//   }
+
+//   if (employmentType) {
+//     baseQuery += " AND type = ?";
+//     countQuery += " AND type = ?";
+//     params.push(employmentType);
+//   }
+
+//   if (minSalary && maxSalary) {
+//     const parsedMinSalary = parseFloat(minSalary);
+//     const parsedMaxSalary = parseFloat(maxSalary);
+//     if (!isNaN(parsedMinSalary) && !isNaN(parsedMaxSalary)) {
+//       baseQuery += " AND min_salary >= ? AND max_salary <= ?";
+//       countQuery += " AND min_salary >= ? AND max_salary <= ?";
+//       params.push(parsedMinSalary, parsedMaxSalary);
+//     }
+//   }
+
+//   if (datePosted) {
+//     const now = new Date();
+//     let msAgo = null;
+
+//     switch (datePosted.trim()) {
+//       case "Last 24 hours":
+//         msAgo = 1 * 24 * 60 * 60 * 1000;
+//         break;
+//       case "Last 3 days":
+//         msAgo = 3 * 24 * 60 * 60 * 1000;
+//         break;
+//       case "Last 7 days":
+//         msAgo = 7 * 24 * 60 * 60 * 1000;
+//         break;
+//     }
+//     console.log(msAgo, "MSAGo");
+//     if (msAgo) {
+//       const filterDate = new Date(Date.now() - msAgo);
+//       console.log(filterDate, "filterDate");
+//       const formatted = filterDate.toISOString().slice(0, 19).replace("T", " ");
+
+//       baseQuery += " AND posted_date >= ?";
+//       countQuery += " AND posted_date >= ?";
+//       params.push(formatted);
+
+//       // For debugging — delete after verifying
+//       console.log("Filtering jobs from:", formatted);
+//     }
+//   }
+
+//   if (isUrgent === "true") {
+//     baseQuery += " AND is_urgent = 1";
+//     countQuery += " AND is_urgent = 1";
+//   }
+
+//   const [totalJobsResult] = await pool.execute(countQuery, params);
+//   const totalJobs = totalJobsResult[0].total;
+//   const totalPages = Math.ceil(totalJobs / limit);
+//   const offset = (page - 1) * limit;
+
+//   const finalBaseQueryWithPagination = `${baseQuery} ORDER BY posted_date DESC  LIMIT ${limit} OFFSET ${offset}`;
+//   const [jobs] = await pool.execute(finalBaseQueryWithPagination, params);
+
+//   return { jobs, totalJobs, totalPages, currentPage: page, limit };
+// }
 
 async function findJobById(jobId) {
   const [jobs] = await pool.execute("SELECT * FROM jobs WHERE id = ?", [jobId]);
@@ -494,8 +624,8 @@ async function findAppliedJobsByStatus(jobseekerId, status) {
   return appliedJobs;
 }
 
-async function findAppliedJobs(jobseekerId, applicationId = null) {
-  const baseQuery = `
+async function findAppliedJobByUserAndJobId(jobseekerId, jobId) {
+  const query = `
     SELECT
       ja.application_id AS applicationId,
       j.id AS jobId,
@@ -514,14 +644,11 @@ async function findAppliedJobs(jobseekerId, applicationId = null) {
       j.is_new AS isNew
     FROM job_applications ja
     INNER JOIN jobs j ON ja.job_id = j.id
-    WHERE ja.jobseeker_id = ?
-    ${applicationId ? "AND ja.application_id = ?" : ""}
+    WHERE ja.jobseeker_id = ? AND ja.job_id = ?
   `;
 
-  const params = applicationId ? [jobseekerId, applicationId] : [jobseekerId];
-
-  const [results] = await pool.execute(baseQuery, params);
-  return applicationId ? results[0] : results;
+  const [results] = await pool.execute(query, [jobseekerId, jobId]);
+  return results[0]; // Return single job object
 }
 
 async function checkJobExists(jobId) {
@@ -539,6 +666,19 @@ async function findExistingApplication(jobId, jobseekerId) {
   return existingApplication.length > 0;
 }
 
+// async function createJobApplication(
+//   jobId,
+//   jobseekerId,
+//   resumeFilepath,
+//   status
+// ) {
+//   const [result] = await pool.execute(
+//     "INSERT INTO job_applications (job_id, jobseeker_id, resume_filepath, status) VALUES (?, ?, ?, ?)",
+//     [jobId, jobseekerId, resumeFilepath, status]
+//   );
+//   return result.insertId;
+// }
+
 async function createJobApplication(
   jobId,
   jobseekerId,
@@ -549,6 +689,13 @@ async function createJobApplication(
     "INSERT INTO job_applications (job_id, jobseeker_id, resume_filepath, status) VALUES (?, ?, ?, ?)",
     [jobId, jobseekerId, resumeFilepath, status]
   );
+
+  // Increment application_count in the jobs table
+  await pool.execute(
+    "UPDATE jobs SET applications_received = applications_received + 1 WHERE id = ?",
+    [jobId]
+  );
+
   return result.insertId;
 }
 
@@ -694,7 +841,7 @@ module.exports = {
   findMaxVoatIdSuffix,
   findJobs,
   findJobById,
-  findAppliedJobs,
+  findAppliedJobByUserAndJobId,
   findAppliedJobsByStatus,
   checkJobExists,
   findExistingApplication,

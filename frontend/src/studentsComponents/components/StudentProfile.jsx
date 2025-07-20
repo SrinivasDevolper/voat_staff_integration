@@ -83,11 +83,14 @@ export default function StudentProfile() {
 
         setUserName(data.username);
         setUserBio(data.bio);
-
-        if (data?.resume_filepath) {
-          setResumePreview(data?.resume_filepath);
-          setResumeFile({ name: data.resume_filepath });
-        }
+        Cookies.set(
+          "sideBarDetails",
+          JSON.stringify({
+            username: data.username,
+            bio: data.bio,
+          }),
+          { expires: 7 }
+        );
       } catch (err) {
         console.error("Failed to load profile:", err);
         toast.error("Failed to load profile.");
@@ -107,21 +110,27 @@ export default function StudentProfile() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        console.log(res, "res");
+
         const { resumeUrl } = res.data;
+        console.log(resumeUrl, "resumeUrl");
         if (!resumeUrl) throw new Error("Resume URL missing");
 
         const fileName = resumeUrl.split("/").pop();
-        console.log(resumeUrl, "resumeUrl");
-        setResumePreview(`${apiUrl}${resumeUrl}`); // Show PDF
-        setResumeFile({ name: fileName }); // Show name below
+        console.log(fileName, "fileName");
+        const fullResumePath = `${apiUrl}${resumeUrl}`;
+
+        console.log("Resume File:", fullResumePath);
+        setResumePreview(fullResumePath);
+        setResumeFile({ name: fileName });
       } catch (error) {
         console.error("Resume fetch failed:", error);
         toast.error("Resume not found or failed to load.");
       }
     };
+
     fetchResume();
   }, []);
-
   const validateForm = () => {
     const newErrors = {};
 
@@ -193,23 +202,24 @@ export default function StudentProfile() {
   };
 
   const handleResumeUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setResumeFile(file);
     setResumePreview(URL.createObjectURL(file));
-    if (errors.resume) {
+
+    if (errors?.resume) {
       setErrors((prev) => ({ ...prev, resume: "" }));
     }
 
     try {
       const token = Cookies.get("jwtToken");
-      if (!token) throw new Error("Missing auth token.");
+      if (!token) throw new Error("Missing auth token");
 
       const formData = new FormData();
       formData.append("resume", file);
 
-      const res = await axios.post(
+      const response = await axios.post(
         `${apiUrl}/jobseeker/profile/resume`,
         formData,
         {
@@ -220,9 +230,15 @@ export default function StudentProfile() {
         }
       );
 
-      const { resumeUrl, message } = res.data;
-      setResumePreview(`${apiUrl}${resumeUrl}`);
-      toast.success(message || "Resume uploaded successfully.");
+      const { resumeUrl, message } = response.data;
+
+      if (resumeUrl) {
+        // ✅ Correctly show uploaded resume preview (PDF or link)
+        setResumePreview(`${apiUrl}${resumeUrl}`);
+        toast.success(message || "Resume uploaded successfully.");
+      } else {
+        throw new Error("No resume URL returned from server.");
+      }
     } catch (err) {
       console.error("Resume upload error:", err);
       toast.error("Failed to upload resume. Please try again.");
@@ -276,7 +292,14 @@ export default function StudentProfile() {
 
         setUserName(response?.data?.profile?.username);
         setUserBio(response?.data?.profile?.bio);
-
+        Cookies.set(
+          "sideBarDetails",
+          JSON.stringify({
+            username: response?.data?.profile?.username,
+            bio: response?.data?.profile?.bio,
+          }),
+          { expires: 7 }
+        );
         console.log("✅ Updated Profile:", response.data.profile);
         setIsEditing(false);
         toast.success("Profile updated successfully!");
@@ -509,19 +532,26 @@ export default function StudentProfile() {
                   <h3 className="text-base sm:text-lg font-semibold">
                     Student Details
                   </h3>
-                  <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm"
-                  >
+                  <button className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm">
                     {isEditing ? (
                       <>
-                        <Check size={16} />
-                        <span>Done</span>
+                        <button
+                          onClick={studentUpdate}
+                          className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm"
+                        >
+                          <Check size={16} />
+                          <span>Done</span>
+                        </button>
                       </>
                     ) : (
                       <>
-                        <Edit2 size={16} />
-                        <span>Edit</span>
+                        <button
+                          onClick={() => setIsEditing(!isEditing)}
+                          className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-[#0F52BA] hover:bg-blue-50 text-sm"
+                        >
+                          <Edit2 size={16} />
+                          <span>Edit</span>
+                        </button>
                       </>
                     )}
                   </button>
@@ -751,7 +781,7 @@ export default function StudentProfile() {
                   <div className="relative w-full flex-1 mb-3 sm:mb-4">
                     <iframe
                       src={resumePreview}
-                      className="w-full h-full min-h-[300px] border border-gray-200"
+                      className="w-full h-full min-h-[580px] border border-gray-200"
                       title="Resume Preview"
                     />
                   </div>

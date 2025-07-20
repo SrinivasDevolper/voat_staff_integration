@@ -141,6 +141,7 @@ function ApplyForJobs() {
       // Filter by date posted
       const now = new Date();
       if (datePosted !== "All") {
+        console.log(datePosted, "datePostedALL");
         const days = {
           "Last 24 hours": 1,
           "Last 3 days": 3,
@@ -164,7 +165,7 @@ function ApplyForJobs() {
       // setFilteredJobs(results);
       setCurrentPage(currentPage);
     } catch (error) {
-      console.error("Error filtering jobs:", error);
+      console.log("Error filtering jobs:", error);
     }
   }, [
     jobs,
@@ -374,7 +375,7 @@ function ApplyForJobs() {
       setSelectedJob(job);
       navigate(`/apply-for-jobs/job-details/${job.id}`);
     } catch (error) {
-      console.error("Error navigating to job details:", error);
+      console.log("Error navigating to job details:", error);
     }
   };
 
@@ -843,15 +844,37 @@ function ApplyForJobs() {
                                 </div>
                               </div>
                               <div className="flex flex-row md:flex-col items-center md:items-end gap-2 self-end md:self-auto">
-                                {job.is_new === 1 && (
-                                  <motion.span
-                                    className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"
-                                    whileHover={{ scale: 1.05 }}
-                                    transition={{ duration: 0.2 }}
-                                  >
-                                    New
-                                  </motion.span>
-                                )}
+                                {(() => {
+                                  console.log(
+                                    job?.posted_date,
+                                    "job?.posted_at"
+                                  );
+                                  if (!job?.posted_date) return null;
+
+                                  const postedDate = new Date(job.posted_date);
+                                  if (isNaN(postedDate)) {
+                                    console.warn(
+                                      "Invalid postedDate:",
+                                      job.posted_date
+                                    );
+                                    return null;
+                                  }
+                                  // console.log(postedDate, "postedDate");
+                                  const now = new Date();
+                                  const daysSincePost = Math.floor(
+                                    (now - postedDate) / (1000 * 60 * 60 * 24)
+                                  );
+
+                                  return daysSincePost <= 2 ? (
+                                    <motion.span
+                                      className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"
+                                      whileHover={{ scale: 1.05 }}
+                                      transition={{ duration: 0.2 }}
+                                    >
+                                      New
+                                    </motion.span>
+                                  ) : null;
+                                })()}
                               </div>
                             </div>
                             <div className="mt-4 flex justify-end">

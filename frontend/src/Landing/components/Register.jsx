@@ -485,7 +485,9 @@ export default function Register() {
                       className="space-y-2"
                     >
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Password strength:</span>
+                        <span className="text-gray-600">
+                          Password strength:
+                        </span>
                         <span
                           className={`font-medium ${getPasswordStrengthColor().replace(
                             "bg-",
@@ -499,7 +501,9 @@ export default function Register() {
                         <motion.div
                           className={`h-2 rounded-full ${getPasswordStrengthColor()}`}
                           initial={{ width: 0 }}
-                          animate={{ width: `${(passwordStrength / 5) * 100}%` }}
+                          animate={{
+                            width: `${(passwordStrength / 5) * 100}%`,
+                          }}
                           transition={{ duration: 0.3 }}
                         />
                       </div>
@@ -578,7 +582,9 @@ export default function Register() {
                         </div>
                         <div
                           className={`flex items-center gap-1 ${
-                            /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+                            /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(
+                              password
+                            )
                               ? "text-green-600"
                               : ""
                           }`}
@@ -644,7 +650,9 @@ export default function Register() {
                                     {selectedFile.name}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {(selectedFile.size / 1024 / 1024).toFixed(2)}{" "}
+                                    {(selectedFile.size / 1024 / 1024).toFixed(
+                                      2
+                                    )}{" "}
                                     MB
                                   </p>
                                 </div>
@@ -705,7 +713,9 @@ export default function Register() {
                         : "bg-blue-700 hover:bg-blue-800 text-white"
                     }`}
                   >
-                    {loading && <Loader2 className="animate-spin mr-2 h-5 w-5" />}
+                    {loading && (
+                      <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                    )}
                     Get OTP
                   </motion.button>
 
@@ -758,7 +768,9 @@ export default function Register() {
                         value={val}
                         onChange={(e) => handleOtpChange(e, idx)}
                         onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                        disabled={loading || lockTimer > 0 || otpExpiresIn === 0}
+                        disabled={
+                          loading || lockTimer > 0 || otpExpiresIn === 0
+                        }
                         ref={(el) => (inputRefs.current[idx] = el)}
                         className={`w-10 h-12 text-center text-lg border rounded-md ${
                           lockTimer > 0
@@ -779,7 +791,9 @@ export default function Register() {
                         : "bg-blue-700 hover:bg-blue-800 text-white"
                     }`}
                   >
-                    {loading && <Loader2 className="animate-spin mr-2 h-5 w-5" />}
+                    {loading && (
+                      <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                    )}
                     Verify OTP (
                     {verifyAttemptsLeft <= 1
                       ? verifyAttemptsLeft
@@ -798,7 +812,9 @@ export default function Register() {
                         onClick={(e) => {
                           if (otpExpiresIn === 0 && !loading) handleResendOtp();
                         }}
-                        disabled={otpExpiresIn !== 0 || loading || lockTimer > 0}
+                        disabled={
+                          otpExpiresIn !== 0 || loading || lockTimer > 0
+                        }
                         className={`text-blue-600 underline cursor-pointer ${
                           otpExpiresIn !== 0
                             ? "cursor-not-allowed text-gray-400"

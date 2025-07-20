@@ -93,44 +93,65 @@ CREATE TABLE staffing_project_backend.jobs (
   FOREIGN KEY (hr_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+select * from staffing_project_backend.jobs;
+describe staffing_project_backend.jobs;
+UPDATE staffing_project_backend.jobs SET closing_date = CURDATE() - INTERVAL 1 DAY WHERE id = 60;
 INSERT INTO staffing_project_backend.jobs (
-  hr_id, title, company, description, location,
-  min_salary, max_salary, currency, pay_period, type,
-  experience, skills, work_mode, is_urgent, is_new,
-  posted_date, openings, eligibility, applications_needed
+  hr_id,
+  title,
+  company,
+  description,
+  location,
+  min_salary,
+  max_salary,
+  currency,
+  pay_period,
+  type,
+  experience,
+  skills,
+  work_mode,
+  is_urgent,
+  is_new,
+  posted_date,
+  closing_date,
+  openings,
+  eligibility,
+  applications_received,
+  applications_needed,
+  job_status,
+  attachment_name,
+  attachment_size,
+  attachment_type
 )
-VALUES
--- 1. AI Research Assistant
-(1, 'AI Research Assistant', 'NeuroNet Labs', 'Assist in training ML models and analyzing datasets.', 'Bangalore',
- 50000.00, 80000.00, '₹', 'monthly', 'Full Time',
- 'Entry-level', 'Python,TensorFlow,Data Analysis', 'Hybrid', 1, 1,
- NOW(), 2, 'M.Tech in AI/ML or related field', 5),
+VALUES (
+  60,
+  'AI Product Designer',
+  'NeuroVerse Labs',
+  'Design cutting-edge AI-powered user interfaces and collaborate with engineers on next-gen digital products.',
+  'Pune',
+  40000,
+  60000,
+  '₹',
+  'monthly',
+  'Full Time',
+  '2-3 years',
+  '["Figma", "UX", "AI APIs", "Prototyping", "User Research"]',
+  'Hybrid',
+  0,
+  1,
+  NOW(),
+  '2025-08-03 12:00:00',
+  2,
+  'MBA preferred.',
+  0,
+  3,
+  'active',
+  NULL,
+  NULL,
+  NULL
+);
 
--- 2. Cybersecurity Analyst
-(1, 'Cybersecurity Analyst', 'SecureSphere', 'Monitor and respond to security threats.', 'Hyderabad',
- 60000.00, 90000.00, '₹', 'monthly', 'Full Time',
- '2-3 years', 'SIEM,Network Security,Python', 'Remote', 1, 0,
- NOW(), 1, 'B.Tech in Cybersecurity or equivalent', 3),
 
--- 3. Blockchain Developer
-(1, 'Blockchain Developer', 'ChainVerse', 'Build and deploy smart contracts and blockchain solutions.', 'Pune',
- 70000.00, 110000.00, '₹', 'monthly', 'Contract',
- 'Mid-level', 'Solidity,Web3.js,Ethereum', 'Remote', 0, 1,
- NOW(), 1, 'Experience in Ethereum or similar platforms', 2),
-
--- 4. Robotics Software Engineer
-(1, 'Robotics Software Engineer', 'RoboCore Systems', 'Develop ROS-based robotic applications.', 'Chennai',
- 55000.00, 85000.00, '₹', 'monthly', 'Full Time',
- '3+ years', 'ROS,C++,Python', 'Work from Office', 0, 1,
- NOW(), 1, 'B.E./B.Tech in Robotics or Mechatronics', 1),
-
--- 5. Cloud Cost Optimization Specialist
-(1, 'Cloud Cost Optimization Specialist', 'FinCloud', 'Analyze and reduce cloud infrastructure spending.', 'Delhi',
- 60000.00, 100000.00, '₹', 'monthly', 'Full Time',
- 'Senior', 'AWS,Budgeting,Cost Explorer', 'Hybrid', 0, 0,
- NOW(), 1, '5+ years in cloud platforms, cost management tools', 1);
-
- 
 INSERT INTO staffing_project_backend.jobs (
   hr_id, title, company, description, location,
   min_salary, max_salary, currency, pay_period,
@@ -138,22 +159,64 @@ INSERT INTO staffing_project_backend.jobs (
   is_urgent, is_new, posted_date, openings,
   eligibility, applications_received, applications_needed,
   job_status, attachment_name, attachment_size, attachment_type
+)
+VALUES
+(60, 'AI Product Designer', 'NeuroVerse Labs', 'Design cutting-edge AI-powered user interfaces and collaborate with engineers on next-gen digital products.', 'Pune', 40000, 60000, '₹', 'monthly', 'Full Time', '2-3 years', '["Figma", "UX", "AI APIs", "Prototyping", "User Research"]', 'Hybrid', 0, 1, NOW(), "2025-08-03 12:00:00", 2, 'MBA preferred.', 0, 3, 'active', NULL, NULL, NULL);
+
+-- 1. AI Research Assistant
+-- (1, 'AI Research Assistant', 'NeuroNet Labs', 'Assist in training ML models and analyzing datasets.', 'Bangalore',
+--  50000.00, 80000.00, '₹', 'monthly', 'Full Time',
+--  'Entry-level', 'Python,TensorFlow,Data Analysis', 'Hybrid', 1, 1,
+--  NOW(), 2, 'M.Tech in AI/ML or related field', 5),
+
+-- -- 2. Cybersecurity Analyst
+-- (1, 'Cybersecurity Analyst', 'SecureSphere', 'Monitor and respond to security threats.', 'Hyderabad',
+--  60000.00, 90000.00, '₹', 'monthly', 'Full Time',
+--  '2-3 years', 'SIEM,Network Security,Python', 'Remote', 1, 0,
+--  NOW(), 1, 'B.Tech in Cybersecurity or equivalent', 3),
+
+-- -- 3. Blockchain Developer
+-- (1, 'Blockchain Developer', 'ChainVerse', 'Build and deploy smart contracts and blockchain solutions.', 'Pune',
+--  70000.00, 110000.00, '₹', 'monthly', 'Contract',
+--  'Mid-level', 'Solidity,Web3.js,Ethereum', 'Remote', 0, 1,
+--  NOW(), 1, 'Experience in Ethereum or similar platforms', 2),
+
+-- -- 4. Robotics Software Engineer
+-- (1, 'Robotics Software Engineer', 'RoboCore Systems', 'Develop ROS-based robotic applications.', 'Chennai',
+--  55000.00, 85000.00, '₹', 'monthly', 'Full Time',
+--  '3+ years', 'ROS,C++,Python', 'Work from Office', 0, 1,
+--  NOW(), 1, 'B.E./B.Tech in Robotics or Mechatronics', 1),
+
+-- -- 5. Cloud Cost Optimization Specialist
+-- (1, 'Cloud Cost Optimization Specialist', 'FinCloud', 'Analyze and reduce cloud infrastructure spending.', 'Delhi',
+--  60000.00, 100000.00, '₹', 'monthly', 'Full Time',
+--  'Senior', 'AWS,Budgeting,Cost Explorer', 'Hybrid', 0, 0,
+--  NOW(), 1, '5+ years in cloud platforms, cost management tools', 1);
+
+--  
+INSERT INTO staffing_project_backend.jobs (
+  hr_id, title, company, description, location,
+  min_salary, max_salary, currency, pay_period,
+  type, experience, skills, work_mode,
+  is_urgent, is_new, posted_date, closing_date,  openings,
+  eligibility, applications_received, applications_needed,
+  job_status, attachment_name, attachment_size, attachment_type
 ) VALUES
-(1, 'Frontend Developer', 'TechNova', 'Build UI with React.', 'Hyderabad', 30000, 50000, '₹', 'monthly', 'Full Time', '1-2 years', '["React", "JavaScript", "HTML"]', 'Remote', 1, 1, NOW(), 3, 'B.Tech in CSE', 0, 10, 'active', NULL, NULL, NULL),
-(1, 'Backend Engineer', 'DataForge', 'Develop backend services using Node.js.', 'Bangalore', 40000, 70000, '₹', 'monthly', 'Full Time', '3+ years', '["Node.js", "Express", "MongoDB"]', 'Hybrid', 0, 1, NOW(), 2, '3 years backend dev exp.', 0, 5, 'active', NULL, NULL, NULL),
-(2, 'Data Analyst', 'InsightWorks', 'Analyze business data using SQL & Excel.', 'Chennai', 25000, 40000, '₹', 'monthly', 'Contract', 'Entry-level', '["SQL", "Excel", "PowerBI"]', 'Work from Office', 0, 0, NOW(), 5, 'BSc Statistics preferred.', 0, 8, 'active', NULL, NULL, NULL),
-(3, 'Product Manager', 'SkyReach', 'Manage product lifecycle.', 'Mumbai', 60000, 100000, '₹', 'monthly', 'Full Time', 'Mid-level', '["Agile", "Scrum", "Roadmaps"]', 'Hybrid', 1, 1, NOW(), 1, 'MBA or equivalent.', 0, 1, 'active', NULL, NULL, NULL),
-(1, 'Graphic Designer', 'VisualEdge', 'Design marketing assets.', 'Delhi', 20000, 35000, '₹', 'monthly', 'Part Time', '1-2 years', '["Photoshop", "Illustrator"]', 'Remote', 0, 1, NOW(), 2, 'Creative arts degree.', 0, 2, 'active', NULL, NULL, NULL),
-(2, 'Mobile Developer', 'AppFuel', 'Create Android/iOS apps.', 'Hyderabad', 45000, 75000, '₹', 'monthly', 'Full Time', '2-3 years', '["Flutter", "React Native"]', 'Remote', 1, 1, NOW(), 2, 'Hands-on mobile exp.', 0, 3, 'active', NULL, NULL, NULL),
-(3, 'QA Engineer', 'Testify', 'Automated & manual testing.', 'Bangalore', 30000, 50000, '₹', 'monthly', 'Full Time', 'Entry-level', '["Selenium", "JIRA"]', 'Work from Office', 0, 1, NOW(), 1, 'QA certification preferred.', 0, 3, 'active', NULL, NULL, NULL),
-(1, 'DevOps Engineer', 'CloudBridge', 'Manage CI/CD pipelines.', 'Pune', 50000, 80000, '₹', 'monthly', 'Full Time', 'Mid-level', '["Docker", "Kubernetes", "AWS"]', 'Hybrid', 0, 1, NOW(), 2, 'B.E. in IT', 0, 4, 'active', NULL, NULL, NULL),
-(2, 'UI/UX Designer', 'DesignLogic', 'Improve product usability.', 'Kolkata', 35000, 60000, '₹', 'monthly', 'Freelance', '1-2 years', '["Figma", "UX Research"]', 'Remote', 0, 1, NOW(), 1, 'Portfolio required.', 0, 1, 'active', NULL, NULL, NULL),
-(3, 'HR Executive', 'PeopleFirst', 'Manage recruitment.', 'Delhi', 25000, 40000, '₹', 'monthly', 'Full Time', 'Any experience', '["Recruitment", "HRMS"]', 'Work from Office', 0, 1, NOW(), 1, 'MBA HR preferred.', 0, 2, 'active', NULL, NULL, NULL),
-(1, 'Full Stack Developer', 'DevLoop', 'React + Node.js web apps.', 'Chennai', 60000, 90000, '₹', 'monthly', 'Full Time', '3+ years', '["React", "Node.js", "MongoDB"]', 'Hybrid', 1, 1, NOW(), 2, 'Full-stack exp. required.', 0, 2, 'active', NULL, NULL, NULL),
-(2, 'Technical Writer', 'DocuWave', 'Write technical docs.', 'Hyderabad', 20000, 30000, '₹', 'monthly', 'Internship', 'Entry-level', '["Markdown", "API Docs"]', 'Remote', 0, 0, NOW(), 1, 'English fluency required.', 0, 1, 'active', NULL, NULL, NULL),
-(3, 'Digital Marketer', 'AdSprint', 'Run digital campaigns.', 'Mumbai', 30000, 45000, '₹', 'monthly', 'Full Time', '1-2 years', '["SEO", "Google Ads"]', 'Work from Office', 0, 1, NOW(), 2, 'Certifications preferred.', 0, 3, 'active', NULL, NULL, NULL),
-(2, 'Cloud Engineer', 'NimbusTech', 'Deploy on cloud platforms.', 'Bangalore', 70000, 120000, '₹', 'monthly', 'Full Time', 'Senior', '["AWS", "Terraform"]', 'Remote', 1, 1, NOW(), 1, '5+ years cloud experience.', 0, 1, 'active', NULL, NULL, NULL),
-(1, 'Business Analyst', 'InsightIQ', 'Translate data to strategy.', 'Pune', 40000, 60000, '₹', 'monthly', 'Full Time', '2-3 years', '["Excel", "Business Analysis"]', 'Hybrid', 0, 1, NOW(), 2, 'MBA preferred.', 0, 3, 'active', NULL, NULL, NULL);
+(1, 'Frontend Developer', 'TechNova', 'Build UI with React.', 'Hyderabad', 30000, 50000, '₹', 'monthly', 'Full Time', '1-2 years', '["React", "JavaScript", "HTML"]', 'Remote', 1, 1, NOW(), '2025-08-03 12:00:00', 3, 'B.Tech in CSE', 0, 10, 'active', NULL, NULL, NULL);
+-- (1, 'Backend Engineer', 'DataForge', 'Develop backend services using Node.js.', 'Bangalore', 40000, 70000, '₹', 'monthly', 'Full Time', '3+ years', '["Node.js", "Express", "MongoDB"]', 'Hybrid', 0, 1, NOW(), 2, '3 years backend dev exp.', 0, 5, 'active', NULL, NULL, NULL),
+-- (2, 'Data Analyst', 'InsightWorks', 'Analyze business data using SQL & Excel.', 'Chennai', 25000, 40000, '₹', 'monthly', 'Contract', 'Entry-level', '["SQL", "Excel", "PowerBI"]', 'Work from Office', 0, 0, NOW(), 5, 'BSc Statistics preferred.', 0, 8, 'active', NULL, NULL, NULL),
+-- (3, 'Product Manager', 'SkyReach', 'Manage product lifecycle.', 'Mumbai', 60000, 100000, '₹', 'monthly', 'Full Time', 'Mid-level', '["Agile", "Scrum", "Roadmaps"]', 'Hybrid', 1, 1, NOW(), 1, 'MBA or equivalent.', 0, 1, 'active', NULL, NULL, NULL),
+-- (1, 'Graphic Designer', 'VisualEdge', 'Design marketing assets.', 'Delhi', 20000, 35000, '₹', 'monthly', 'Part Time', '1-2 years', '["Photoshop", "Illustrator"]', 'Remote', 0, 1, NOW(), 2, 'Creative arts degree.', 0, 2, 'active', NULL, NULL, NULL),
+-- (2, 'Mobile Developer', 'AppFuel', 'Create Android/iOS apps.', 'Hyderabad', 45000, 75000, '₹', 'monthly', 'Full Time', '2-3 years', '["Flutter", "React Native"]', 'Remote', 1, 1, NOW(), 2, 'Hands-on mobile exp.', 0, 3, 'active', NULL, NULL, NULL),
+-- (3, 'QA Engineer', 'Testify', 'Automated & manual testing.', 'Bangalore', 30000, 50000, '₹', 'monthly', 'Full Time', 'Entry-level', '["Selenium", "JIRA"]', 'Work from Office', 0, 1, NOW(), 1, 'QA certification preferred.', 0, 3, 'active', NULL, NULL, NULL),
+-- (1, 'DevOps Engineer', 'CloudBridge', 'Manage CI/CD pipelines.', 'Pune', 50000, 80000, '₹', 'monthly', 'Full Time', 'Mid-level', '["Docker", "Kubernetes", "AWS"]', 'Hybrid', 0, 1, NOW(), 2, 'B.E. in IT', 0, 4, 'active', NULL, NULL, NULL),
+-- (2, 'UI/UX Designer', 'DesignLogic', 'Improve product usability.', 'Kolkata', 35000, 60000, '₹', 'monthly', 'Freelance', '1-2 years', '["Figma", "UX Research"]', 'Remote', 0, 1, NOW(), 1, 'Portfolio required.', 0, 1, 'active', NULL, NULL, NULL),
+-- (3, 'HR Executive', 'PeopleFirst', 'Manage recruitment.', 'Delhi', 25000, 40000, '₹', 'monthly', 'Full Time', 'Any experience', '["Recruitment", "HRMS"]', 'Work from Office', 0, 1, NOW(), 1, 'MBA HR preferred.', 0, 2, 'active', NULL, NULL, NULL),
+-- (1, 'Full Stack Developer', 'DevLoop', 'React + Node.js web apps.', 'Chennai', 60000, 90000, '₹', 'monthly', 'Full Time', '3+ years', '["React", "Node.js", "MongoDB"]', 'Hybrid', 1, 1, NOW(), 2, 'Full-stack exp. required.', 0, 2, 'active', NULL, NULL, NULL),
+-- (2, 'Technical Writer', 'DocuWave', 'Write technical docs.', 'Hyderabad', 20000, 30000, '₹', 'monthly', 'Internship', 'Entry-level', '["Markdown", "API Docs"]', 'Remote', 0, 0, NOW(), 1, 'English fluency required.', 0, 1, 'active', NULL, NULL, NULL),
+-- (3, 'Digital Marketer', 'AdSprint', 'Run digital campaigns.', 'Mumbai', 30000, 45000, '₹', 'monthly', 'Full Time', '1-2 years', '["SEO", "Google Ads"]', 'Work from Office', 0, 1, NOW(), 2, 'Certifications preferred.', 0, 3, 'active', NULL, NULL, NULL),
+-- (2, 'Cloud Engineer', 'NimbusTech', 'Deploy on cloud platforms.', 'Bangalore', 70000, 120000, '₹', 'monthly', 'Full Time', 'Senior', '["AWS", "Terraform"]', 'Remote', 1, 1, NOW(), 1, '5+ years cloud experience.', 0, 1, 'active', NULL, NULL, NULL),
+-- (1, 'Business Analyst', 'InsightIQ', 'Translate data to strategy.', 'Pune', 40000, 60000, '₹', 'monthly', 'Full Time', '2-3 years', '["Excel", "Business Analysis"]', 'Hybrid', 0, 1, NOW(), 2, 'MBA preferred.', 0, 3, 'active', NULL, NULL, NULL);
 
 -- (1, 'Frontend Developer', 'TechNova', 'Develop UI components using React.', 'Bangalore',
 --  30000.00, 50000.00, '₹', 'monthly', 'Full Time',
@@ -180,6 +243,8 @@ INSERT INTO staffing_project_backend.jobs (
 --  NOW(), 1, 'MBA or equivalent', 3);
  
 SELECT is_new FROM staffing_project_backend.jobs ORDER BY posted_date DESC;
+
+SELECT * from staffing_project_backend.jobs;
 
 CREATE TABLE staffing_project_backend.job_applications (
   application_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -303,11 +368,64 @@ INSERT INTO staffing_project_backend.jobseeker (
   'jane.doe@example.com'
 );
 
+INSERT INTO staffing_project_backend.jobs (
+  id,
+  title,
+  company,
+  description,
+  location,
+  min_salary,
+  max_salary,
+  currency,
+  pay_period,
+  type,
+  experience,
+  skills,
+  work_mode,
+  is_urgent,
+  is_new,
+  posted_date,
+  openings,
+  eligibility,
+  application_limit,
+  status,
+  closed_date,
+  created_at,
+  updated_at
+)
+VALUES (
+  1002,
+  'AI Product Designer',
+  'NeuroVerse Labs',
+  'Design cutting-edge AI-powered user interfaces and collaborate with engineers on next-gen digital products.',
+  'Bangalore',
+  60000,
+  90000,
+  '₹',
+  'monthly',
+  'Contract',
+  '3-5 years',
+  '["Figma", "UX", "AI APIs", "Prototyping", "User Research"]',
+  'Hybrid',
+  1,
+  1,
+  '2025-07-20 12:00:00',
+  2,
+  'Any Bachelor\'s Degree + Design Certification preferred',
+  5,
+  'active',
+  '2025-08-03 12:00:00',
+  '2025-07-20 12:00:00',
+  '2025-07-20 12:00:00'
+);
+
+
+
 DROP TABLE staffing_project_backend.pending_signups;
 DROP TABLE staffing_project_backend.jobseeker_profiles;
 DROP TABLE staffing_project_backend.users;
 
-select * from staffing_project_backend.jobseeker;
+select * from staffing_project_backend.users;
 select * from staffing_project_backend.job_applications;
 select * from staffing_project_backend.jobs;
 SELECT resume_filepath FROM jobseeker WHERE user_id = 1;
@@ -328,8 +446,10 @@ ALTER TABLE staffing_project_backend.pending_signups ADD COLUMN otpVerifyAttempt
 ALTER TABLE staffing_project_backend.users
 ADD COLUMN passwordAttempts INT DEFAULT 0;
 
+ALTER TABLE staffing_project_backend.jobs ADD COLUMN closing_date DATE AFTER posted_date;
+
 SELECT * FROM staffing_project_backend.users;
-SELECT * FROM staffing_project_backend.jobs;
+SELECT * FROM staffing_project_backend.jobs where id = 1;
 SELECT * FROM staffing_project_backend.pending_signups;
 select * from staffing_project_backend.pending_signups;
 

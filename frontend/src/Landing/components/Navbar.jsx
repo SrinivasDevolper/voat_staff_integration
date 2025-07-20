@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Power } from "lucide-react";
 import { FaUserCircle } from "react-icons/fa";
 import { useAuth } from "../../contexts/AuthContext";
+import { UserDetailsContext } from "../../studentsComponents/contexts/UserDetailsContext";
+import Cookies from "js-cookie";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,7 +14,7 @@ const Navbar = () => {
   const profileRef = useRef(null);
   const navigate = useNavigate();
   const { isLoggedIn, logout } = useAuth();
-
+  const userDetails = Cookies.get("userDetails") || "";
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) setScrolled(true);
@@ -26,9 +28,25 @@ const Navbar = () => {
     setActiveTab(tab);
     setTimeout(() => {
       if (tab === "left") {
-        navigate("/apply-for-jobs");
+        if (
+          userDetails &&
+          JSON.parse(userDetails).name &&
+          JSON.parse(userDetails).role === "jobseeker"
+        ) {
+          navigate("/apply-for-jobs");
+        } else {
+          navigate("/login");
+        }
       } else if (tab === "right") {
-        navigate("/hire/hrprofile");
+        if (
+          userDetails &&
+          JSON.parse(userDetails).name &&
+          JSON.parse(userDetails).role === "hr"
+        ) {
+          navigate("/hire/hrprofile");
+        } else {
+          navigate("/login");
+        }
       }
     }, 500);
   };
@@ -60,7 +78,11 @@ const Navbar = () => {
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 bg-[#0F52BA] transition-shadow duration-300 
-          ${scrolled ? 'md:breathing-effect md:shadow-none shadow-md' : 'shadow-md'}
+          ${
+            scrolled
+              ? "md:breathing-effect md:shadow-none shadow-md"
+              : "shadow-md"
+          }
         `}
       >
         <div className="flex items-center justify-between px-3 py-3 relative">
@@ -74,7 +96,7 @@ const Navbar = () => {
               >
                 <FaUserCircle className="text-blue-600 w-6 h-6" />
                 <span className="text-blue-900 font-semibold text-sm">
-                  Hi, Shivam
+                  Hi, {userDetails && JSON.parse(userDetails).name}
                 </span>
               </button>
               {dropdownOpen && (
@@ -99,7 +121,11 @@ const Navbar = () => {
           {/* Centered logo absolutely centered */}
           <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex justify-center items-center w-full pointer-events-none">
             <Link to="/" className="pointer-events-auto">
-              <img src="/MANAHIRE.png" alt="MANAHIRE Logo" className="w-44 mx-auto" />
+              <img
+                src="/MANAHIRE.png"
+                alt="MANAHIRE Logo"
+                className="w-44 mx-auto"
+              />
             </Link>
           </div>
 
